@@ -217,36 +217,67 @@ export class GuidController {
   }
 
   /**
-   * Add highlight overlays to selected meshes
+   * Add highlight overlays to selected meshes with different colors
    */
   addGuidHighlights(meshes: THREE.Mesh[]): void {
-    const highlightMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-      transparent: true,
-      opacity: 0.3,
-      depthTest: false,
-      side: THREE.DoubleSide
-    });
+    // Color palette for multiple objects
+    const colorPalette = [
+      { name: 'Green', color: 0x00ff00 },      // 1st object: Green
+      { name: 'Purple', color: 0xbb00ff },     // 2nd object: Purple
+      { name: 'Cyan', color: 0x00ffff },       // 3rd object: Cyan
+      { name: 'Orange', color: 0xff8800 },     // 4th object: Orange
+      { name: 'Yellow', color: 0xffff00 },     // 5th object: Yellow
+      { name: 'Magenta', color: 0xff00ff },    // 6th object: Magenta
+      { name: 'Lime', color: 0x88ff00 },       // 7th object: Lime
+      { name: 'Pink', color: 0xff0088 }        // 8th object: Pink
+    ];
 
-    meshes.forEach(mesh => {
+    console.log(`[GuidController] Adding highlights to ${meshes.length} mesh(es) with different colors`);
+
+    meshes.forEach((mesh, index) => {
       const geometry = mesh.geometry as THREE.BufferGeometry;
-      if (!geometry) return;
+      if (!geometry) {
+        console.warn(`[GuidController] Mesh ${index} has no geometry, skipping highlight`);
+        return;
+      }
+
+      // Select color from palette (cycle if more objects than colors)
+      const paletteIndex = index % colorPalette.length;
+      const colorInfo = colorPalette[paletteIndex];
+
+      const highlightMaterial = new THREE.MeshBasicMaterial({
+        color: colorInfo.color,
+        transparent: true,
+        opacity: 0.6,          // Bright and visible
+        depthTest: false,      // Always render on top
+        side: THREE.DoubleSide
+      });
 
       const overlayGeom = new THREE.BufferGeometry();
       overlayGeom.setAttribute('position', geometry.getAttribute('position'));
       
-      const index = geometry.getIndex();
-      if (index) {
-        overlayGeom.setIndex(index);
+      const index_attr = geometry.getIndex();
+      if (index_attr) {
+        overlayGeom.setIndex(index_attr);
       }
 
-      const overlay = new THREE.Mesh(overlayGeom, highlightMaterial.clone());
+      const overlay = new THREE.Mesh(overlayGeom, highlightMaterial);
       (overlay as any).userData.isGuidHighlight = true;
-      overlay.renderOrder = 999;
+      (overlay as any).userData.highlightColor = colorInfo.name;
+      overlay.renderOrder = 999;  // Render last
+      overlay.visible = true;      // Ensure visible
       
       mesh.add(overlay);
       this.guidHighlightOverlays.push(overlay);
+      
+      console.log(`[GuidController] ✓ Added ${colorInfo.name} highlight (${index + 1}/${meshes.length}) to mesh: ${mesh.name}`);
+      console.log(`  - Color: ${colorInfo.name} (0x${colorInfo.color.toString(16)})`);
+      console.log(`  - Mesh visible:`, mesh.visible);
+      console.log(`  - Mesh children:`, mesh.children.length);
+      console.log(`  - Overlay visible:`, overlay.visible);
     });
+
+    console.log(`[GuidController] Total highlights created: ${this.guidHighlightOverlays.length}`);
   }
 
   /**

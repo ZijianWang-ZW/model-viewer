@@ -482,6 +482,39 @@ function performGuidSearch() {
     viewer.resetCameraFocusConfig();
     console.log('🔄 Camera config reset to defaults');
     console.table(viewer.getCameraFocusConfig());
+  },
+  
+  // Debug Highlights
+  checkHighlights: () => {
+    const selectedMeshes = viewer.getGuidSelectedMeshes();
+    const scene = viewer.getScene();
+    let highlightCount = 0;
+    const highlightColors: string[] = [];
+    scene.traverse((obj: any) => {
+      if (obj.userData?.isGuidHighlight) {
+        highlightCount++;
+        if (obj.userData?.highlightColor) {
+          highlightColors.push(obj.userData.highlightColor);
+        }
+      }
+    });
+    console.log('🎨 Highlight Debug Info:');
+    console.log('  - Selected meshes:', selectedMeshes.length);
+    console.log('  - Highlight overlays in scene:', highlightCount);
+    console.log('  - Colors used:', highlightColors.join(', ') || 'None');
+    console.log('  - Selected mesh details:', selectedMeshes);
+    selectedMeshes.forEach((mesh: any, i: number) => {
+      const highlightChild = mesh.children.find((c: any) => c.userData?.isGuidHighlight);
+      const color = highlightChild?.userData?.highlightColor || 'Unknown';
+      console.log(`\n  Object ${i + 1}:`);
+      console.log('    - Name:', mesh.name);
+      console.log('    - Highlight Color:', color);
+      console.log('    - Visible:', mesh.visible);
+      console.log('    - Has geometry:', !!mesh.geometry);
+      console.log('    - Children:', mesh.children.length);
+      console.log('    - Highlight children:', mesh.children.filter((c: any) => c.userData?.isGuidHighlight).length);
+    });
+    return { selectedMeshes, highlightCount, colors: highlightColors };
   }
 };
 
