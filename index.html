@@ -11,6 +11,13 @@
     #app {
       height: 100%;
       margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
     }
 
     #toolbar {
@@ -24,8 +31,12 @@
     }
 
     #container {
-      height: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
+      height: 100%;
+      z-index: 0;
     }
 
     button {
@@ -121,6 +132,36 @@
 
     #search-text.hidden {
       display: none;
+    }
+
+    #guid-config {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #guid-input {
+      width: 180px;
+      padding: 4px 6px;
+      border: 1px solid #666;
+      border-radius: 4px;
+      background: rgba(50, 50, 50, 0.9);
+      color: #fff;
+      font: 12px sans-serif;
+    }
+
+    #guid-input::placeholder {
+      color: #aaa;
+    }
+
+    #guid-input.hidden,
+    #guid-focus.hidden {
+      display: none;
+    }
+
+    #guid-focus {
+      padding: 6px 10px;
+      font-size: 12px;
     }
 
     #clip-config {
@@ -484,8 +525,8 @@
       <button id="open">Open .glb</button>
       <button id="toggle-edges" data-active="false">Edges: Off</button>
       <button id="toggle-adaptive" data-active="false">Adaptive Res: Off</button>
-      <button id="toggle-batching" data-active="true">Batching: On</button>
-      <span id="batch-input-wrap">
+      <button id="toggle-batching" data-active="false">Batching: Off</button>
+      <span id="batch-input-wrap" style="display: none;">
         <label for="batch-vertices">Max. verts</label>
         <input id="batch-vertices" type="number" min="100" max="100000" value="20000" step="100" />
       </span>
@@ -507,6 +548,11 @@
           <label for="cull-threshold">Cull(px)</label>
           <input id="cull-threshold" type="number" min="0" value="50" />
         </span>
+      </span>
+      <span id="guid-config">
+        <button id="guid-search" data-active="true">Find by GUID: On</button>
+        <input id="guid-input" type="text" placeholder="GUID1, GUID2..." />
+        <button id="guid-focus">Focus</button>
       </span>
       <span id="drag-config">
         <label for="drag-smooth">Drag delay</label>

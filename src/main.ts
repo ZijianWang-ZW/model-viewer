@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Viewer } from './viewer/Viewer';
 import { installClippingUI } from './clipping';
 import { installEdgesUI } from './edges';
@@ -320,3 +321,160 @@ allModelsToggle.addEventListener('click', () => {
 window.addEventListener('viewer:modelLoaded', updateModelsPanel);
 window.addEventListener('viewer:modelRemoved', updateModelsPanel);
 updateModelsPanel();
+
+// GUID search functionality
+const guidSearchBtn = document.getElementById('guid-search')!;
+const guidInput = document.getElementById('guid-input') as HTMLInputElement;
+const guidFocusBtn = document.getElementById('guid-focus')!;
+
+guidSearchBtn.addEventListener('click', () => {
+  const isActive = guidSearchBtn.getAttribute('data-active') === 'true';
+  
+  if (!isActive) {
+    // Show input and focus button
+    guidInput.classList.remove('hidden');
+    guidFocusBtn.classList.remove('hidden');
+    guidInput.focus();
+    guidSearchBtn.setAttribute('data-active', 'true');
+    guidSearchBtn.textContent = 'Find by GUID: On';
+  } else {
+    // Hide input and clear
+    guidInput.classList.add('hidden');
+    guidFocusBtn.classList.add('hidden');
+    guidSearchBtn.setAttribute('data-active', 'false');
+    guidSearchBtn.textContent = 'Find by GUID';
+    guidInput.value = '';
+    // Clear GUID highlights
+    viewer.clearGuidHighlights();
+  }
+});
+
+// Search and highlight on Enter
+guidInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    performGuidSearch();
+  }
+});
+
+// Focus button - trigger search when clicked
+guidFocusBtn.addEventListener('click', () => {
+  performGuidSearch();
+});
+
+function performGuidSearch() {
+  const input = guidInput.value.trim();
+  if (!input) return;
+  
+  console.log('[Main] Starting GUID search with input:', input);
+  
+  // Parse GUIDs - handle both comma-separated and array format
+  let guids: string[] = [];
+  
+  // Remove brackets if present: ['guid1', 'guid2'] -> 'guid1', 'guid2'
+  const cleaned = input.replace(/[\[\]'\"]/g, '');
+  guids = cleaned.split(',').map(g => g.trim()).filter(g => g.length > 0);
+  
+  console.log('[Main] Parsed GUIDs:', guids);
+  
+  if (guids.length === 0) {
+    alert('Please enter at least one GUID');
+    return;
+  }
+  
+  // Find meshes by GUIDs
+  const foundMeshes = viewer.findMeshesByGUIDs(guids);
+  
+  console.log('[Main] Search result:', foundMeshes);
+  
+  // Determine which GUIDs were not found
+  const foundGuids = new Set<string>();
+  foundMeshes.forEach(mesh => {
+    const userData = (mesh as any).userData || {};
+    const possibleGuids = [
+      userData.name,
+      mesh.name,
+      userData.guid,
+      userData.GlobalId,
+      userData.expressID,
+      userData.ifcGuid,
+      userData.GUID
+    ].filter(Boolean).map(g => String(g).toLowerCase());
+    
+    guids.forEach(searchGuid => {
+      if (possibleGuids.includes(searchGuid.toLowerCase())) {
+        foundGuids.add(searchGuid);
+      }
+    });
+  });
+  
+  const notFoundGuids = guids.filter(g => !foundGuids.has(g));
+  
+  // Highlight found objects
+  if (foundMeshes.length > 0) {
+    viewer.clearGuidHighlights();
+    viewer.addGuidHighlights(foundMeshes);
+    viewer.focusOnObjects(foundMeshes, true);
+    
+    // Show feedback
+    if (notFoundGuids.length > 0) {
+      const message = `Found ${foundMeshes.length} of ${guids.length} objects`;
+      showGuidSearchFeedback(message);
+      alert(`⚠️ GUIDs not found:\n\n${notFoundGuids.join('\n')}\n\n✅ Found ${foundMeshes.length} object(s)`);
+    } else {
+      const message = `Found all ${foundMeshes.length} objects!`;
+      showGuidSearchFeedback(message);
+    }
+    
+    console.log('[Main] Success - Found:', foundGuids);
+    console.log('[Main] Not found:', notFoundGuids);
+  } else {
+    const message = `❌ No objects found for any of the provided GUIDs:\n\n${guids.join('\n')}`;
+    console.error('[Main] Not found:', message);
+    alert(message);
+  }
+}
+
+// Add debug helper to window for console access
+(window as any).debugViewer = {
+  listGUIDs: () => viewer.listAllGUIDs(),
+  inspect: () => viewer.inspectModelUserData(),
+  searchGUID: (guid: string) => {
+    const result = viewer.findAndFocusByGUIDs([guid]);
+    console.log('Search result:', result);
+    return result;
+  },
+  searchByName: (namePattern: string) => {
+    const meshes: THREE.Mesh[] = [];
+    const scene = viewer.getScene();
+    scene.traverse((obj: any) => {
+      if (!obj.isMesh) return;
+      if (!obj.userData?.isUserModel) return;
+      if (!obj.userData?.isMergedBatch) return;
+      if (!obj.userData?.isEdgeOverlay) return;
+      if (obj.name.toLowerCase().includes(namePattern.toLowerCase())) {
+        meshes.push(obj);
+      }
+    });
+    console.log(`Found ${meshes.length} meshes matching "${namePattern}":`, meshes);
+    if (meshes.length > 0) {
+      viewer.focusOnObjects(meshes, true);
+      viewer.clearGuidHighlights();
+      viewer.addGuidHighlights(meshes);
+    }
+    return meshes;
+  }
+};
+
+function showGuidSearchFeedback(message: string) {
+  // Reuse edges banner for feedback
+  const banner = document.getElementById('edges-banner');
+  if (banner) {
+    banner.textContent = message;
+    banner.style.display = 'block';
+    banner.style.background = 'rgba(101, 40, 215, 0.9)';
+    setTimeout(() => {
+      banner.style.display = 'none';
+      banner.style.background = '';
+    }, 3000);
+  }
+}
