@@ -1,6 +1,23 @@
 import * as THREE from 'three';
 import type { SimpleCamera } from '@thatopen/components';
 
+export interface CameraFocusConfig {
+  /** Distance multiplier from object. Higher = farther away. Default: 1.5 */
+  distanceMultiplier: number;
+  
+  /** Camera viewing angle as vector. Default: (1,1,1) = isometric */
+  viewAngle: { x: number; y: number; z: number };
+  
+  /** Enable smooth animation. Default: true */
+  animated: boolean;
+  
+  /** Vertical offset from object center (in world units). Default: 0 */
+  verticalOffset: number;
+  
+  /** Horizontal offset from object center (in world units). Default: 0 */
+  horizontalOffset: number;
+}
+
 /**
  * Controller for GUID-based object search, highlighting, and camera focusing
  */
@@ -11,9 +28,45 @@ export class GuidController {
   private guidSelectedMeshes: THREE.Mesh[] = [];
   private guidHighlightOverlays: THREE.Mesh[] = [];
 
+  // Camera focus configuration
+  private focusConfig: CameraFocusConfig = {
+    distanceMultiplier: 1.5,
+    viewAngle: { x: 1, y: 1, z: 1 }, // Isometric view (45°, 45°, 45°)
+    animated: true,
+    verticalOffset: 0,
+    horizontalOffset: 0
+  };
+
   constructor(scene: THREE.Scene, camera: SimpleCamera) {
     this.scene = scene;
     this.camera = camera;
+  }
+
+  /**
+   * Get current camera focus configuration
+   */
+  getCameraFocusConfig(): CameraFocusConfig {
+    return { ...this.focusConfig };
+  }
+
+  /**
+   * Update camera focus configuration (partial update supported)
+   */
+  setCameraFocusConfig(config: Partial<CameraFocusConfig>): void {
+    this.focusConfig = { ...this.focusConfig, ...config };
+  }
+
+  /**
+   * Reset camera focus configuration to defaults
+   */
+  resetCameraFocusConfig(): void {
+    this.focusConfig = {
+      distanceMultiplier: 1.5,
+      viewAngle: { x: 1, y: 1, z: 1 },
+      animated: true,
+      verticalOffset: 0,
+      horizontalOffset: 0
+    };
   }
 
   /**
@@ -91,11 +144,14 @@ export class GuidController {
   }
 
   /**
-   * Focus camera on specific objects with smooth animation
+   * Focus camera on specific objects with configurable parameters
+   * @param objects - Meshes to focus on
+   * @param animated - Override animation setting (uses config if not specified)
    */
-  focusOnObjects(objects: THREE.Mesh[], animated: boolean = true): void {
+  focusOnObjects(objects: THREE.Mesh[], animated?: boolean): void {
     if (objects.length === 0) return;
     
+    // Calculate bounding box of all objects
     const box = new THREE.Box3();
     objects.forEach(obj => {
       const objBox = new THREE.Box3().setFromObject(obj);
@@ -108,23 +164,36 @@ export class GuidController {
     const center = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     
+    // Apply vertical and horizontal offsets
+    center.y += this.focusConfig.verticalOffset;
+    center.x += this.focusConfig.horizontalOffset;
+    
+    // Calculate distance based on camera type and config
     const camera = this.camera.three as THREE.PerspectiveCamera | THREE.OrthographicCamera;
     let distance = 10;
     if ((camera as any).isPerspectiveCamera) {
       const persp = camera as THREE.PerspectiveCamera;
       const fov = persp.fov * (Math.PI / 180);
-      distance = Math.abs(maxDim / Math.tan(fov / 2)) * 1.5;
+      distance = Math.abs(maxDim / Math.tan(fov / 2)) * this.focusConfig.distanceMultiplier;
     } else {
-      distance = maxDim * 2;
+      distance = maxDim * this.focusConfig.distanceMultiplier;
     }
     
-    const dir = new THREE.Vector3(1, 1, 1).normalize();
+    // Calculate camera position using configured view angle
+    const dir = new THREE.Vector3(
+      this.focusConfig.viewAngle.x,
+      this.focusConfig.viewAngle.y,
+      this.focusConfig.viewAngle.z
+    ).normalize();
     const eye = center.clone().add(dir.multiplyScalar(distance));
+    
+    // Use provided animated parameter or fall back to config
+    const useAnimation = animated !== undefined ? animated : this.focusConfig.animated;
     
     this.camera.controls.setLookAt(
       eye.x, eye.y, eye.z,
       center.x, center.y, center.z,
-      animated
+      useAnimation
     );
   }
 

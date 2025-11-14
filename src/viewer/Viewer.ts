@@ -475,7 +475,7 @@ export class Viewer {
     return this.guidCtrl.findMeshesByGUIDs(guids);
   }
 
-  focusOnObjects(objects: THREE.Mesh[], animated: boolean = true): void {
+  focusOnObjects(objects: THREE.Mesh[], animated?: boolean): void {
     this.guidCtrl.focusOnObjects(objects, animated);
   }
 
@@ -497,6 +497,19 @@ export class Viewer {
 
   getScene(): THREE.Scene {
     return this.scene;
+  }
+
+  // Camera Focus Configuration
+  getCameraFocusConfig(): import('./GuidController').CameraFocusConfig {
+    return this.guidCtrl.getCameraFocusConfig();
+  }
+
+  setCameraFocusConfig(config: Partial<import('./GuidController').CameraFocusConfig>): void {
+    this.guidCtrl.setCameraFocusConfig(config);
+  }
+
+  resetCameraFocusConfig(): void {
+    this.guidCtrl.resetCameraFocusConfig();
   }
 
   // Debug utilities

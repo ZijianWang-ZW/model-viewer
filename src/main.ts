@@ -436,6 +436,7 @@ function performGuidSearch() {
 
 // Add debug helper to window for console access
 (window as any).debugViewer = {
+  // GUID Search
   listGUIDs: () => viewer.listAllGUIDs(),
   inspect: () => viewer.inspectModelUserData(),
   searchGUID: (guid: string) => {
@@ -462,6 +463,25 @@ function performGuidSearch() {
       viewer.addGuidHighlights(meshes);
     }
     return meshes;
+  },
+  
+  // Camera Focus Configuration
+  getCameraConfig: () => {
+    const config = viewer.getCameraFocusConfig();
+    console.log('📷 Current Camera Focus Config:');
+    console.table(config);
+    return config;
+  },
+  setCameraConfig: (config: any) => {
+    viewer.setCameraFocusConfig(config);
+    console.log('✅ Camera config updated:', config);
+    console.log('📷 New config:');
+    console.table(viewer.getCameraFocusConfig());
+  },
+  resetCameraConfig: () => {
+    viewer.resetCameraFocusConfig();
+    console.log('🔄 Camera config reset to defaults');
+    console.table(viewer.getCameraFocusConfig());
   }
 };
 
