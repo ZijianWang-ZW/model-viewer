@@ -19,29 +19,65 @@ npm run dev
 
 ### ✅ Phase 2: GUID Search & Focus
 - Search objects by GUID (Global Unique Identifier)
-- Automatic highlighting of found objects
+- Multi-color highlighting (green, purple, cyan, orange, etc.)
 - Smart camera positioning to view selected objects
+- Configurable camera controls (distance, angle, offsets)
 - Debug tools for inspecting model data
 
+### ✅ Phase 2.3: Surrounding Objects Control
+- **Hide Others** - Isolate selected objects (hide unselected)
+- **Transparent Others** - Make unselected objects 85% transparent
+- Perfect for clash detection and analysis
+
+### ✅ Multiple File Loading
+- Select and load multiple GLB files at once
+- Assign discipline labels to each file individually
+- Sequential processing with progress indicator
+
 ### 🚧 Coming Soon
-- Phase 2.3: Hide/transparent surrounding objects
-- Phase 4: Clash detection from CSV
+- Phase 4: Clash detection cards from CSV
 
 ## Usage
 
 ### Loading Models
-1. Click **"Open .glb"** to load a model
-2. Select the discipline from the modal
-3. Use the **Models panel** (top-right) to:
-   - Toggle individual model visibility (eye icon)
-   - Toggle all models (click "All")
-   - Remove models (× button)
 
-### GUID Search
+#### Single File:
+1. Click **"Open .glb"**
+2. Select ONE GLB file
+3. Choose discipline from modal
+4. Model loads automatically
+
+#### Multiple Files:
+1. Click **"Open .glb"**
+2. Select MULTIPLE GLB files (Ctrl/Cmd + click or Shift + click)
+3. For each file, a modal appears showing:
+   - **"Select Discipline (1/3): filename.glb"**
+4. Choose discipline for each file one by one
+5. All models load sequentially
+
+#### Managing Models:
+Use the **Models panel** (top-right) to:
+- Toggle individual model visibility (eye icon)
+- Toggle all models (click "All")
+- Remove models (× button)
+
+### GUID Search & Clash Detection
 1. Click **"Find by GUID: On"** to activate search
 2. Enter GUID(s) in the input field (comma-separated for multiple)
+   - Example: `guid1, guid2` for clash detection
 3. Click **"Focus"** or press **Enter** to search and highlight
-4. Objects will be highlighted in green and camera will focus on them
+4. Objects will be highlighted in different colors:
+   - 1st object: 🟢 Green
+   - 2nd object: 🟣 Purple
+   - 3rd+ objects: Cyan, Orange, Yellow, etc.
+
+#### Surrounding Objects Control:
+After highlighting objects, use:
+- **"Hide Others"** (🔴 Red) - Hides all unselected objects (isolation view)
+- **"Transparent Others"** (🔵 Cyan) - Makes unselected objects 85% transparent (context view)
+- Click again to return to normal view
+
+Perfect for analyzing clashes from your CSV data!
 
 ### Debug Console
 Open browser DevTools console and use:

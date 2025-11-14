@@ -512,6 +512,15 @@ export class Viewer {
     this.guidCtrl.resetCameraFocusConfig();
   }
 
+  // Surrounding Objects Control
+  setSurroundingMode(mode: import('./GuidController').SurroundingMode): void {
+    this.guidCtrl.setSurroundingMode(mode);
+  }
+
+  getSurroundingMode(): import('./GuidController').SurroundingMode {
+    return this.guidCtrl.getSurroundingMode();
+  }
+
   // Debug utilities
   listAllGUIDs(): void {
     this.guidCtrl.listAllGUIDs();

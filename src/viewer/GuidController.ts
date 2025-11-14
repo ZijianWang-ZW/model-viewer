@@ -21,12 +21,19 @@ export interface CameraFocusConfig {
 /**
  * Controller for GUID-based object search, highlighting, and camera focusing
  */
+export type SurroundingMode = 'normal' | 'hidden' | 'transparent';
+
 export class GuidController {
   private scene: THREE.Scene;
   private camera: SimpleCamera;
   
   private guidSelectedMeshes: THREE.Mesh[] = [];
   private guidHighlightOverlays: THREE.Mesh[] = [];
+
+  // Surrounding objects control
+  private surroundingMode: SurroundingMode = 'normal';
+  private originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  private originalVisibility = new Map<THREE.Mesh, boolean>();
 
   // Camera focus configuration
   private focusConfig: CameraFocusConfig = {
@@ -281,9 +288,13 @@ export class GuidController {
   }
 
   /**
-   * Clear GUID highlights
+   * Clear GUID highlights and restore surrounding objects
    */
   clearGuidHighlights(): void {
+    // Restore surrounding objects first
+    this.restoreSurroundingObjects();
+
+    // Clear highlights
     this.guidHighlightOverlays.forEach(overlay => {
       overlay.parent?.remove(overlay);
       overlay.geometry.dispose();
@@ -298,6 +309,139 @@ export class GuidController {
    */
   getGuidSelectedMeshes(): THREE.Mesh[] {
     return this.guidSelectedMeshes;
+  }
+
+  /**
+   * Get current surrounding mode
+   */
+  getSurroundingMode(): SurroundingMode {
+    return this.surroundingMode;
+  }
+
+  /**
+   * Set surrounding objects mode (hide or make transparent)
+   */
+  setSurroundingMode(mode: SurroundingMode): void {
+    if (this.guidSelectedMeshes.length === 0) {
+      console.warn('[GuidController] ⚠️ No objects selected. Search for GUIDs first.');
+      console.log('[GuidController] guidSelectedMeshes:', this.guidSelectedMeshes);
+      return;
+    }
+
+    console.log(`[GuidController] 🔄 Setting surrounding mode: ${mode}`);
+    console.log(`[GuidController] Selected meshes count: ${this.guidSelectedMeshes.length}`);
+    console.log(`[GuidController] Selected mesh names:`, this.guidSelectedMeshes.map(m => m.name));
+
+    // Restore previous state first
+    this.restoreSurroundingObjects();
+
+    this.surroundingMode = mode;
+
+    if (mode === 'normal') {
+      console.log('[GuidController] ✅ Restored to normal mode');
+      return; // Already restored, nothing more to do
+    }
+
+    const selectedSet = new Set(this.guidSelectedMeshes);
+    let affectedCount = 0;
+    let skippedSelected = 0;
+    let skippedOther = 0;
+
+    // Traverse scene and apply mode to unselected meshes
+    this.scene.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!(mesh as any).isMesh) return;
+      if (!(mesh as any).userData?.isUserModel) {
+        skippedOther++;
+        return;
+      }
+      if ((mesh as any).userData?.isMergedBatch) {
+        skippedOther++;
+        return;
+      }
+      if ((mesh as any).userData?.isEdgeOverlay) {
+        skippedOther++;
+        return;
+      }
+      if ((mesh as any).userData?.isGuidHighlight) {
+        skippedOther++;
+        return;
+      }
+
+      // Skip selected meshes
+      if (selectedSet.has(mesh)) {
+        skippedSelected++;
+        console.log(`[GuidController] Skipping selected mesh: ${mesh.name}`);
+        return;
+      }
+
+      // Store original state
+      if (!this.originalVisibility.has(mesh)) {
+        this.originalVisibility.set(mesh, mesh.visible);
+      }
+      if (!this.originalMaterials.has(mesh)) {
+        this.originalMaterials.set(mesh, mesh.material);
+      }
+
+      if (mode === 'hidden') {
+        mesh.visible = false;
+        affectedCount++;
+      } else if (mode === 'transparent') {
+        // Create transparent version of material
+        const originalMat = mesh.material;
+        if (Array.isArray(originalMat)) {
+          const transparentMats = originalMat.map(mat => this.createTransparentMaterial(mat));
+          mesh.material = transparentMats;
+        } else {
+          mesh.material = this.createTransparentMaterial(originalMat);
+        }
+        affectedCount++;
+      }
+    });
+
+    console.log(`[GuidController] ✅ Surrounding mode applied: ${mode}`);
+    console.log(`[GuidController] Affected meshes: ${affectedCount}`);
+    console.log(`[GuidController] Skipped (selected): ${skippedSelected}`);
+    console.log(`[GuidController] Skipped (other): ${skippedOther}`);
+  }
+
+  /**
+   * Create a transparent version of a material
+   */
+  private createTransparentMaterial(original: THREE.Material): THREE.Material {
+    const transparent = original.clone();
+    transparent.transparent = true;
+    transparent.opacity = 0.15; // 15% opacity (85% transparent)
+    transparent.depthWrite = false; // Prevent z-fighting
+    return transparent;
+  }
+
+  /**
+   * Restore surrounding objects to original state
+   */
+  private restoreSurroundingObjects(): void {
+    // Restore visibility
+    this.originalVisibility.forEach((originalVisible, mesh) => {
+      mesh.visible = originalVisible;
+    });
+
+    // Restore materials
+    this.originalMaterials.forEach((originalMat, mesh) => {
+      // Dispose cloned transparent materials
+      if (this.surroundingMode === 'transparent') {
+        const currentMat = mesh.material;
+        if (Array.isArray(currentMat)) {
+          currentMat.forEach(mat => mat.dispose());
+        } else {
+          currentMat.dispose();
+        }
+      }
+      mesh.material = originalMat;
+    });
+
+    this.originalVisibility.clear();
+    this.originalMaterials.clear();
+    this.surroundingMode = 'normal';
   }
 
   /**

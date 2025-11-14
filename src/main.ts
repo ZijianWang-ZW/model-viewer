@@ -3,14 +3,10 @@ import { Viewer } from './viewer/Viewer';
 import { installClippingUI } from './clipping';
 import { installEdgesUI } from './edges';
 import { installHighlightUI } from './highlight';
-import type { DisciplineType } from './modelManager';
+import { FileLoadManager } from './fileLoadManager';
 
 const container = document.getElementById('container')!;
 const viewer = new Viewer(container);
-
-// Discipline modal state
-let pendingFile: File | null = null;
-let selectedDiscipline: DisciplineType | null = null;
 
 // Stats updater
 const meshesEl = document.getElementById('stat-meshes') as HTMLElement | null;
@@ -34,59 +30,12 @@ function updateStats() {
   if (highlightedEl) highlightedEl.textContent = String(viewer.getHighlightedCount());
 }
 
-// Discipline modal setup
-const disciplineModal = document.getElementById('discipline-modal')!;
-const disciplineOptions = document.querySelectorAll('.discipline-option');
-const disciplineConfirm = document.getElementById('discipline-confirm') as HTMLButtonElement;
-const disciplineCancel = document.getElementById('discipline-cancel')!;
-const fileInput = document.getElementById('file') as HTMLInputElement;
-
-const resetDisciplineModal = () => {
-  disciplineModal.classList.remove('active');
-  disciplineOptions.forEach(opt => opt.classList.remove('selected'));
-  disciplineConfirm.disabled = true;
-  pendingFile = null;
-  selectedDiscipline = null;
-  fileInput.value = '';
-};
-
-// Discipline selection handlers
-disciplineOptions.forEach(option => {
-  option.addEventListener('click', () => {
-    disciplineOptions.forEach(opt => opt.classList.remove('selected'));
-    option.classList.add('selected');
-    selectedDiscipline = option.getAttribute('data-discipline') as DisciplineType;
-    disciplineConfirm.disabled = false;
-  });
-});
-
-disciplineCancel.addEventListener('click', resetDisciplineModal);
-
-disciplineConfirm.addEventListener('click', async () => {
-  if (!pendingFile || !selectedDiscipline) return;
-  
-  disciplineModal.classList.remove('active');
-  const t0 = performance.now();
-  
-  await (viewer.getModelManager().hasModels()
-    ? viewer.loadAdditionalModel(pendingFile, selectedDiscipline)
-    : viewer.loadGLBFromFile(pendingFile, selectedDiscipline));
-  
-  if (loadSecEl) loadSecEl.textContent = ((performance.now() - t0) / 1000).toFixed(2);
+// File loading manager - handles multiple files with discipline selection
+const fileLoadManager = new FileLoadManager(viewer);
+fileLoadManager.setLoadCompleteCallback(() => {
   updateStats();
   updateModelsPanel();
   refreshBatchDetailsIfOpen();
-  resetDisciplineModal();
-});
-
-// File open
-document.getElementById('open')!.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', (e) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (file) {
-    pendingFile = file;
-    disciplineModal.classList.add('active');
-  }
 });
 
 // Edges toggle button logic
@@ -326,6 +275,8 @@ updateModelsPanel();
 const guidSearchBtn = document.getElementById('guid-search')!;
 const guidInput = document.getElementById('guid-input') as HTMLInputElement;
 const guidFocusBtn = document.getElementById('guid-focus')!;
+const surroundingHideBtn = document.getElementById('surrounding-hide')!;
+const surroundingTransparentBtn = document.getElementById('surrounding-transparent')!;
 
 guidSearchBtn.addEventListener('click', () => {
   const isActive = guidSearchBtn.getAttribute('data-active') === 'true';
@@ -344,8 +295,11 @@ guidSearchBtn.addEventListener('click', () => {
     guidSearchBtn.setAttribute('data-active', 'false');
     guidSearchBtn.textContent = 'Find by GUID';
     guidInput.value = '';
-    // Clear GUID highlights
+    // Clear GUID highlights and restore surrounding objects
     viewer.clearGuidHighlights();
+    // Reset surrounding buttons
+    surroundingHideBtn.setAttribute('data-active', 'false');
+    surroundingTransparentBtn.setAttribute('data-active', 'false');
   }
 });
 
@@ -359,6 +313,41 @@ guidInput.addEventListener('keydown', (e) => {
 // Focus button - trigger search when clicked
 guidFocusBtn.addEventListener('click', () => {
   performGuidSearch();
+});
+
+// Surrounding objects control buttons
+surroundingHideBtn.addEventListener('click', () => {
+  const isActive = surroundingHideBtn.getAttribute('data-active') === 'true';
+  
+  if (!isActive) {
+    // Activate hide mode
+    viewer.setSurroundingMode('hidden');
+    surroundingHideBtn.setAttribute('data-active', 'true');
+    surroundingTransparentBtn.setAttribute('data-active', 'false');
+    console.log('✅ Hide Others mode activated');
+  } else {
+    // Deactivate - return to normal
+    viewer.setSurroundingMode('normal');
+    surroundingHideBtn.setAttribute('data-active', 'false');
+    console.log('✅ Returned to normal view');
+  }
+});
+
+surroundingTransparentBtn.addEventListener('click', () => {
+  const isActive = surroundingTransparentBtn.getAttribute('data-active') === 'true';
+  
+  if (!isActive) {
+    // Activate transparent mode
+    viewer.setSurroundingMode('transparent');
+    surroundingTransparentBtn.setAttribute('data-active', 'true');
+    surroundingHideBtn.setAttribute('data-active', 'false');
+    console.log('✅ Transparent Others mode activated');
+  } else {
+    // Deactivate - return to normal
+    viewer.setSurroundingMode('normal');
+    surroundingTransparentBtn.setAttribute('data-active', 'false');
+    console.log('✅ Returned to normal view');
+  }
 });
 
 function performGuidSearch() {
@@ -411,22 +400,22 @@ function performGuidSearch() {
   
   // Highlight found objects
   if (foundMeshes.length > 0) {
-    viewer.clearGuidHighlights();
-    viewer.addGuidHighlights(foundMeshes);
-    viewer.focusOnObjects(foundMeshes, true);
+    // Use findAndFocusByGUIDs which properly stores selected meshes
+    const result = viewer.findAndFocusByGUIDs(guids);
     
     // Show feedback
     if (notFoundGuids.length > 0) {
-      const message = `Found ${foundMeshes.length} of ${guids.length} objects`;
+      const message = `Found ${result.found.length} of ${guids.length} objects`;
       showGuidSearchFeedback(message);
-      alert(`⚠️ GUIDs not found:\n\n${notFoundGuids.join('\n')}\n\n✅ Found ${foundMeshes.length} object(s)`);
+      alert(`⚠️ GUIDs not found:\n\n${notFoundGuids.join('\n')}\n\n✅ Found ${result.found.length} object(s)`);
     } else {
-      const message = `Found all ${foundMeshes.length} objects!`;
+      const message = `Found all ${result.found.length} objects!`;
       showGuidSearchFeedback(message);
     }
     
     console.log('[Main] Success - Found:', foundGuids);
     console.log('[Main] Not found:', notFoundGuids);
+    console.log('[Main] Selected meshes stored:', result.found.length);
   } else {
     const message = `❌ No objects found for any of the provided GUIDs:\n\n${guids.join('\n')}`;
     console.error('[Main] Not found:', message);
@@ -502,6 +491,7 @@ function performGuidSearch() {
     console.log('  - Selected meshes:', selectedMeshes.length);
     console.log('  - Highlight overlays in scene:', highlightCount);
     console.log('  - Colors used:', highlightColors.join(', ') || 'None');
+    console.log('  - Current surrounding mode:', viewer.getSurroundingMode());
     console.log('  - Selected mesh details:', selectedMeshes);
     selectedMeshes.forEach((mesh: any, i: number) => {
       const highlightChild = mesh.children.find((c: any) => c.userData?.isGuidHighlight);
@@ -515,6 +505,40 @@ function performGuidSearch() {
       console.log('    - Highlight children:', mesh.children.filter((c: any) => c.userData?.isGuidHighlight).length);
     });
     return { selectedMeshes, highlightCount, colors: highlightColors };
+  },
+  
+  // Debug Surrounding Mode
+  debugSurrounding: () => {
+    const scene = viewer.getScene();
+    const selectedMeshes = viewer.getGuidSelectedMeshes();
+    const mode = viewer.getSurroundingMode();
+    
+    console.log('🔍 Surrounding Objects Debug:');
+    console.log('  - Current mode:', mode);
+    console.log('  - Selected meshes:', selectedMeshes.length);
+    console.log('  - Selected mesh names:', selectedMeshes.map((m: any) => m.name));
+    
+    let totalUserMeshes = 0;
+    let visibleCount = 0;
+    let hiddenCount = 0;
+    
+    scene.traverse((obj: any) => {
+      if (!obj.isMesh) return;
+      if (!obj.userData?.isUserModel) return;
+      if (obj.userData?.isMergedBatch) return;
+      if (obj.userData?.isEdgeOverlay) return;
+      if (obj.userData?.isGuidHighlight) return;
+      
+      totalUserMeshes++;
+      if (obj.visible) visibleCount++;
+      else hiddenCount++;
+    });
+    
+    console.log('  - Total user meshes (excluding highlights/edges):', totalUserMeshes);
+    console.log('  - Visible:', visibleCount);
+    console.log('  - Hidden:', hiddenCount);
+    
+    return { mode, selectedCount: selectedMeshes.length, totalUserMeshes, visibleCount, hiddenCount };
   }
 };
 
