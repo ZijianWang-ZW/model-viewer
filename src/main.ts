@@ -2,9 +2,14 @@ import { Viewer } from './viewer/Viewer';
 import { installClippingUI } from './clipping';
 import { installEdgesUI } from './edges';
 import { installHighlightUI } from './highlight';
+import type { DisciplineType } from './modelManager';
 
 const container = document.getElementById('container')!;
 const viewer = new Viewer(container);
+
+// Discipline modal state
+let pendingFile: File | null = null;
+let selectedDiscipline: DisciplineType | null = null;
 
 // Stats updater
 const meshesEl = document.getElementById('stat-meshes') as HTMLElement | null;
@@ -28,33 +33,59 @@ function updateStats() {
   if (highlightedEl) highlightedEl.textContent = String(viewer.getHighlightedCount());
 }
 
-// File open
-document.getElementById('open')!.addEventListener('click', () => {
-  (document.getElementById('file') as HTMLInputElement).click();
+// Discipline modal setup
+const disciplineModal = document.getElementById('discipline-modal')!;
+const disciplineOptions = document.querySelectorAll('.discipline-option');
+const disciplineConfirm = document.getElementById('discipline-confirm') as HTMLButtonElement;
+const disciplineCancel = document.getElementById('discipline-cancel')!;
+const fileInput = document.getElementById('file') as HTMLInputElement;
+
+const resetDisciplineModal = () => {
+  disciplineModal.classList.remove('active');
+  disciplineOptions.forEach(opt => opt.classList.remove('selected'));
+  disciplineConfirm.disabled = true;
+  pendingFile = null;
+  selectedDiscipline = null;
+  fileInput.value = '';
+};
+
+// Discipline selection handlers
+disciplineOptions.forEach(option => {
+  option.addEventListener('click', () => {
+    disciplineOptions.forEach(opt => opt.classList.remove('selected'));
+    option.classList.add('selected');
+    selectedDiscipline = option.getAttribute('data-discipline') as DisciplineType;
+    disciplineConfirm.disabled = false;
+  });
 });
 
-document.getElementById('file')!.addEventListener('change', async (e) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
+disciplineCancel.addEventListener('click', resetDisciplineModal);
+
+disciplineConfirm.addEventListener('click', async () => {
+  if (!pendingFile || !selectedDiscipline) return;
+  
+  disciplineModal.classList.remove('active');
+  const t0 = performance.now();
+  
+  await (viewer.getModelManager().hasModels()
+    ? viewer.loadAdditionalModel(pendingFile, selectedDiscipline)
+    : viewer.loadGLBFromFile(pendingFile, selectedDiscipline));
+  
+  if (loadSecEl) loadSecEl.textContent = ((performance.now() - t0) / 1000).toFixed(2);
+  updateStats();
+  updateModelsPanel();
+  refreshBatchDetailsIfOpen();
+  resetDisciplineModal();
+});
+
+// File open
+document.getElementById('open')!.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (file) {
-    // Ensure edges are OFF for new model load
-    viewer.setEdgesEnabled(false);
-    const edgesToggle = document.getElementById('toggle-edges');
-    if (edgesToggle) {
-      edgesToggle.setAttribute('data-active', 'false');
-      (edgesToggle as HTMLElement).textContent = 'Edges: Off';
-    }
-    if (edgesBanner) edgesBanner.style.display = 'none';
-    if (edgesSecEl) edgesSecEl.textContent = 'N/A';
-    const t0 = performance.now();
-    await viewer.loadGLBFromFile(file);
-    const t1 = performance.now();
-    const sec = Math.round((t1 - t0) / 10) / 100; // keep 2 decimals
-    if (loadSecEl) loadSecEl.textContent = sec.toFixed(2);
-    updateStats();
-    refreshBatchDetailsIfOpen();
+    pendingFile = file;
+    disciplineModal.classList.add('active');
   }
-  input.value = '';
 });
 
 // Edges toggle button logic
@@ -230,3 +261,62 @@ window.addEventListener('viewer:edgesBuilt', (e: any) => {
 window.addEventListener('viewer:highlightChanged', () => {
   updateStats();
 });
+
+// Models panel setup
+const modelsList = document.getElementById('models-list')!;
+const modelCount = document.getElementById('model-count')!;
+const allModelsToggle = document.getElementById('all-models-toggle')!;
+
+const DISCIPLINE_ICONS: Record<DisciplineType, string> = {
+  Architecture: '🏛️', Structure: '🏗️', Mechanical: '⚙️',
+  Electrical: '⚡', Plumbing: '🚰', Other: '📦'
+};
+
+const EYE_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+
+function updateModelsPanel() {
+  const models = viewer.getModelManager().getAllModels();
+  modelCount.textContent = String(models.length);
+  
+  // Update "All" toggle
+  allModelsToggle.querySelector('.visibility-icon')!.classList.toggle('hidden', 
+    !viewer.getModelManager().areAllModelsVisible());
+  
+  // Clear and rebuild model list
+  modelsList.querySelectorAll('.model-item:not(.all-item)').forEach(el => el.remove());
+  
+  models.forEach(model => {
+    const item = document.createElement('div');
+    item.className = 'model-item';
+    item.innerHTML = `
+      <div class="visibility-icon ${model.visible ? '' : 'hidden'}" title="Toggle">${EYE_ICON}</div>
+      <span class="discipline-icon-small">${DISCIPLINE_ICONS[model.discipline]}</span>
+      <span class="model-name" title="${model.name}">${model.discipline}</span>
+      <button class="model-action-btn remove-btn" title="Remove">×</button>
+    `;
+    
+    item.querySelector('.visibility-icon')!.addEventListener('click', () => {
+      viewer.setModelVisibility(model.id, !model.visible);
+      updateModelsPanel();
+    });
+    
+    item.querySelector('.remove-btn')!.addEventListener('click', () => {
+      if (confirm(`Remove ${model.discipline}?`)) {
+        viewer.removeModel(model.id);
+        updateModelsPanel();
+        updateStats();
+      }
+    });
+    
+    modelsList.appendChild(item);
+  });
+}
+
+allModelsToggle.addEventListener('click', () => {
+  viewer.setAllModelsVisibility(!viewer.getModelManager().areAllModelsVisible());
+  updateModelsPanel();
+});
+
+window.addEventListener('viewer:modelLoaded', updateModelsPanel);
+window.addEventListener('viewer:modelRemoved', updateModelsPanel);
+updateModelsPanel();

@@ -1,0 +1,261 @@
+Issue Name,Issue GUID,Description,Component Name,Component Type,Component GUID,Processing_Time,Total_Cost,GPT4V_Relevance,GPT4V_Type,GPT4V_Confidence,GPT4V_Reasoning,GPT4V_Tokens,Consensus_Relevance,Consensus_Type
+(CLG) Pipe.1.10 is inside (CLG) Duct.2.6,a65e5783-b925-45ce-990e-e73e2f79168a,"(CLG) Pipe.1.10 is inside (CLG) Duct.2.6
+
+Type: Inside
+Clash Size:
+- Length: 7.27 m
+- Width: 76 mm
+- Height: 76 mm
+- Volume: 0.03 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Rechteck:RE_Stutzen:8147282', 'Rohrtypen:Stahl_EN10220_1D-TS:8276538']","['IfcDuctSegmentType', 'IfcPipeSegmentType']","['1S9G5zrjz40xBsZmHlztJM', '0xvd$bdRjFHh8opES89whr']",12.497064590454102,0.02654,Relevant,Hard Clash,High,"The description and images indicate a physical overlap between the pipe and duct, classifying it as a Hard Clash. The provided measurements show that the pipe is inside the duct over a significant length (7.27 m), with a specific overlap width and height (76 mm each). This exceeds the horizontal and vertical tolerance of 50 mm, meaning corrective action is necessary to prevent real-world installation conflicts.",2654,Relevant,Hard Clash
+(CLG) Duct.1.7 clashes with (CLG) Duct.1.4,c2c7894f-7fea-4b80-a360-67fb790529fe,"(CLG) Duct.1.7 clashes with (CLG) Duct.1.4
+
+Type: Overlapping
+Clash Size:
+- Length: 400 mm
+- Width: 400 mm
+- Height: 150 mm
+- Volume: 0.02 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Rechteck:RE_Stutzen:8241496', 'Rechteck:RE_Stutzen:8241503']","['IfcDuctSegmentType', 'IfcDuctSegmentType']","['3pS7Ebu1v9meK6G8LtL6Db', '3pS7Ebu1v9meK6G8LtL6DY']",8.635016679763794,0.026330000000000003,Relevant,Hard Clash,High,"The clash involves two duct segments physically intersecting, with an overlap that exceeds the specified horizontal and vertical tolerances (50 mm each). The overlap measurements (400x400x150 mm) indicate a significant physical intersection that needs resolution to avoid installation issues or performance problems in the system.",2633,Relevant,Hard Clash
+(HTG) Pipe.1.551 is inside (ARC) Slab.1.2,2231bce0-97c5-44ad-b633-8c65a793e93f,"(HTG) Pipe.1.551 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 604 mm
+- Width: 21 mm
+- Height: 20 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', 'Rohrtypen:Stahl_EN10220_1D-TS:8339488']","['IfcSlabType', 'IfcPipeSegmentType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nJl']",8.021166086,0.026420000000000003,Relevant,Hard Clash,High,"The clash involves a heating pipe intersecting with an architectural slab, indicating a physical overlap (hard clash). The length of the overlap is significant (604 mm), exceeding the specified horizontal and vertical tolerances of 50 mm. This suggests the clash requires attention to avoid potential issues during construction, as the pipe cannot exist within the slab without proper coordination or design adjustments.",2642,Relevant,Hard Clash
+(HTG) Pipe Fitting.0.55.6 is inside (ARC) Slab.-1.2,2abe2536-fcba-42ef-b505-f7f417e6e212,"(HTG) Pipe Fitting.0.55.6 is inside (ARC) Slab.-1.2
+
+Type: Inside
+Clash Size:
+- Length: 23 mm
+- Width: 21 mm
+- Height: 23 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+150_FB_GD:5224544', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8339988']","['IfcSlabType', 'IfcPipeFittingType']","['0gjFHjjvD7S8kZrgPA3xoy', '3B36kJLw9DTAy81gJJ7nRR']",6.267873525619507,0.0048,Irrelevant,Intentional/Tolerable Clash,High,"Based on the provided description, the clash size (23 mm x 21 mm x 23 mm) is significantly smaller than the given tolerance (50 mm both horizontally and vertically). This suggests that the overlap falls within acceptable limits, making it negligible. Additionally, the components involved are a pipe fitting and a slab, which often require some level of penetration for installation and connection purposes. The lack of volume defined for the clash contributes further to it being non-critical. Therefore, this clash can be considered tolerable and does not require immediate action.",480,Irrelevant,Intentional/Tolerable Clash
+(HTG) Pipe.1.633 is inside (ARC) Slab.0.4,f4f93e4e-995c-4c6a-b9b7-a7770fb0793c,"(HTG) Pipe.1.633 is inside (ARC) Slab.0.4
+
+Type: Inside
+Clash Size:
+- Length: 12.55 m
+- Width: 21 mm
+- Height: 20 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5220772', 'Rohrtypen:Stahl_EN10220_1D-TS:8343813']","['IfcSlabType', 'IfcPipeSegmentType']","['3O1IQJ$r59m9hdigo$nLIm', '3B36kJLw9DTAy81gJJ7mNA']",8.059553623199463,0.026510000000000002,Relevant,Hard Clash,High,"The clash description indicates that a heating pipe is physically intersecting with a structural slab, as evidenced by the mismatch in their spatial boundaries. The clash size dimensions, especially the significant clash length (12.55 m), suggest a substantial overlap rather than a mere tolerable or negligible contact. The pipe?€?s positioning directly within the slab necessitates design review and coordination to resolve the physical conflict between these elements.",2651,Relevant,Hard Clash
+(HTG) Pipe Fitting.2.69 is inside (ARC) Slab.1.2,755c9ad1-bcc3-4871-abaa-c5451ae3f3d2,"(HTG) Pipe Fitting.2.69 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 23 mm
+- Width: 21 mm
+- Height: 23 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8339490']","['IfcSlabType', 'IfcPipeFittingType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nJj']",5.362795591,0.00485,Relevant,Hard Clash,High,"The clash involves a (HTG) pipe fitting being inside an (ARC) slab. The description indicates a physical intersection where the pipe fitting penetrates the slab. This is classified as a Hard Clash since physical components (a pipe fitting and a slab) are overlapping. The dimensions provided (23 mm length, 21 mm width, and 23 mm height) fall well within the tolerance limits provided (horizontal and vertical of 50 mm), meaning the clash is not considered negligible by the project's tolerances, thus requiring resolution. Therefore, action is necessary to avoid potential installation issues or structural concerns in the field.",485,Relevant,Hard Clash
+(ELE) Duct.1.4 clashes with (ARC) Beam.1.16,8985b013-647c-4739-873c-95b2b5bfdd60,"(ELE) Duct.1.4 clashes with (ARC) Beam.1.16
+
+Type: Overlapping
+Clash Size:
+- Length: 260 mm
+- Width: 250 mm
+- Height: 130 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['STL_HEA Tr??ger:I_HEA 260:5651316', 'Rechteck:Busbar:8093754']","['IfcBeamType', 'IfcDuctSegmentType']","['3UVBCstwX8qvCKX5YomOiC', '0zSbGJXF51WxOdq$Xp20I5']",7.341903924942017,0.026170000000000002,Relevant,Hard Clash,High,"The clash involves a duct intersecting with a beam, indicating a physical overlap. Given the clash dimensions exceed the specified tolerances, this overlap needs resolution to prevent physical interference during construction. The images show the intersecting elements, reinforcing this analysis.",2617,Relevant,Hard Clash
+(VEN) Duct.2.96 clashes with (ARC) Slab.2.1,735268c4-51c8-4b63-a3de-5e98a4158776,"(VEN) Duct.2.96 clashes with (ARC) Slab.2.1
+
+Type: Overlapping
+Clash Size:
+- Length: 600 mm
+- Width: 300 mm
+- Height: 200 mm
+- Volume: 0.04 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:STB_A_300_GD:5230759', 'Rechteck:RE_T-St??ck:8236365']","['IfcSlabType', 'IfcDuctSegmentType']","['0gjFHjjvD7S8kZrgPA3zHx', '1ZhKJBEi945wcDSJCn6nGd']",11.38490605354309,0.026400000000000003,Relevant,Hard Clash,High,"The duct and slab are physically overlapping with a significant volume of 0.04 m??, exceeding the horizontal and vertical tolerance of 50 mm. This indicates a hard clash where physical elements are improperly intersecting, requiring resolution to ensure proper installation and structural integrity. The images further illustrate this physical overlap, confirming the issue's relevance for action.",2640,Relevant,Hard Clash
+(HTG) Pipe.2.370 is inside (ARC) Slab.1.2,1822c535-83f6-4e4e-bb8d-cf300f5e9ab2,"(HTG) Pipe.2.370 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 37 mm
+- Width: 21 mm
+- Height: 37 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', 'Rohrtypen:Stahl_EN10220_1D-TS:8341077']","['IfcSlabType', 'IfcPipeSegmentType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nAQ']",12.276659488677979,0.026860000000000002,Irrelevant,Intentional/Tolerable Clash,High,"The issue identifies a pipe intersecting a slab with a clash size of 37 mm length, 21 mm width, and 37 mm height. The tolerance for both horizontal and vertical dimensions is 50 mm. Given that the intersection is well within the defined tolerances, this overlap can be considered negligible and likely intentional to accommodate structural or design requirements. The volume of the clash is 0.00 m??, indicating an extremely minor physical intersection that does not seem to impact structural integrity or function. Therefore, this clash does not require further action.",2686,Irrelevant,Intentional/Tolerable Clash
+(VEN) Duct.1.264 clashes with (VEN) Duct Fitting.1.124,39029a40-0ebc-42e6-8f22-14f0fb0ff044,"(VEN) Duct.1.264 clashes with (VEN) Duct Fitting.1.124
+
+Type: Overlapping
+Clash Size:
+- Length: 600 mm
+- Width: 303 mm
+- Height: 175 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Bogen rechteck BS:Standard:8236950', 'Rechteck:RE_Stutzen:8236946']","['IfcDuctFittingType', 'IfcDuctSegmentType']","['1ZhKJBEi945wcDSJCn6nRy', '1ZhKJBEi945wcDSJCn6nRu']",8.700641870498657,0.02654,Relevant,Hard Clash,High,"The clash involves a duct and a duct fitting, indicated as overlapping components with values exceeding the provided tolerances (50 mm horizontally and vertically). Given the significant overlap dimensions (600 mm length, 303 mm width, 175 mm height), this is a physical intersection that cannot be resolved without adjustments. This indicates a spatial conflict that must be addressed to prevent functional issues or installation challenges.",2654,Relevant,Hard Clash
+(HTG) Pipe.1.246 is inside (ARC) Slab.0.4,eb56ef40-85c9-4d77-be47-16bbf2b7a4ac,"(HTG) Pipe.1.246 is inside (ARC) Slab.0.4
+
+Type: Inside
+Clash Size:
+- Length: 37 mm
+- Width: 21 mm
+- Height: 37 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5220772', 'Rohrtypen:Stahl_EN10220_1D-TS:8343471']","['IfcSlabType', 'IfcPipeSegmentType']","['3O1IQJ$r59m9hdigo$nLIm', '3B36kJLw9DTAy81gJJ7njW']",7.926733493804932,0.026680000000000002,Relevant,Hard Clash,High,"The issue involves a heating (HTG) pipe penetrating an architectural (ARC) slab. Since there is a physical overlap with a clash size of 37 mm in height, it qualifies as a hard clash. The tolerance levels (50 mm both horizontally and vertically) indicate that while the clash is small, it is within the range to be considered relevant without disregarding it as negligible or intentional. The need for action depends on reviewing the structural integrity and functionality where the pipe passes through the slab.",2668,Relevant,Hard Clash
+(CLG) Pipe Fitting.1.13 is inside (CLG) Duct.1.5,12f7c30d-f9e1-45e7-9eac-848586139110,"(CLG) Pipe Fitting.1.13 is inside (CLG) Duct.1.5
+
+Type: Inside
+Clash Size:
+- Length: 34 mm
+- Width: 27 mm
+- Height: 34 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Rechteck:RE_Stutzen:8241488', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8275696']","['IfcDuctSegmentType', 'IfcPipeFittingType']","['3pS7Ebu1v9meK6G8LtL6Dj', '0xvd$bdRjFHh8opES89wO$']",6.862433910369873,0.00498,Relevant,Hard Clash,High,"The description indicates that a pipe fitting is inside a duct, which suggests a physical overlap between the two components. Given the clash size, this constitutes a Hard Clash as it involves physical components intersecting, which may obstruct fluid or air flow and could result in installation issues in the field. The overlap falls under the tolerance threshold (50 mm horizontally and vertically), signaling this is not within acceptable limits and requires action to ensure the integrity of the systems involved. The clash involves different component types specified as 'IfcDuctSegmentType' and 'IfcPipeFittingType', supporting the conclusion that this is a hard, rather than a duplicate or intentional/tolerable clash.",498,Relevant,Hard Clash
+(HTG) Pipe.0.116 is inside (ARC) Slab.-1.2,42e237fc-e06f-4afa-92e4-2ed6405660f3,"(HTG) Pipe.0.116 is inside (ARC) Slab.-1.2
+
+Type: Inside
+Clash Size:
+- Length: 37 mm
+- Width: 21 mm
+- Height: 37 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+150_FB_GD:5224544', 'Rohrtypen:Stahl_EN10220_1D-TS:8344322']","['IfcSlabType', 'IfcPipeSegmentType']","['0gjFHjjvD7S8kZrgPA3xoy', '3B36kJLw9DTAy81gJJ7mVD']",20.193047523498535,0.026520000000000002,Relevant,Hard Clash,High,"The clash involves a heating pipe intersecting with a slab, which is typically a hard clash as the components overlap physically. The size of the clash (37 mm x 21 mm x 37 mm) exceeds common tolerance levels for installation and may affect structural integrity or function. This needs resolution to avoid issues during construction or installation. The images confirm the intersection, with the pipe clearly intruding into the slab volume.",2652,Relevant,Hard Clash
+(HTG) Pipe Fitting.2.13.12 is inside (ARC) Slab.1.2,1d9489ad-d6d4-4786-b90b-7a7eb33e5e13,"(HTG) Pipe Fitting.2.13.12 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 21 mm
+- Width: 13 mm
+- Height: 21 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8341459']","['IfcSlabType', 'IfcPipeFittingType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nCS']",8.144032716751099,0.00516,Relevant,Hard Clash,High,"The described clash involves a heating (HTG) pipe fitting physically located inside an architectural (ARC) slab. This qualifies as a Hard Clash because there's a direct overlap of physical components, which can potentially lead to construction issues, such as interfering with structural integrity or affecting the function of the pipe. Despite the relatively small dimensions of the clash (21 mm x 13 mm x 21 mm), it is within the category of a hard clash since physical intersection is involved, especially between a pipe fitting and a structural component like a slab. This type of clash typically necessitates attention to avoid construction complications or design discrepancies. The clash falls outside the specified tolerance (50 mm for both horizontal and vertical parameters), further emphasizing its relevance and the need for resolution.",516,Relevant,Hard Clash
+(HTG) Pipe.1.625 is inside (ARC) Slab.0.4,6876459e-7655-4f3a-8d57-0309e77cba78,"(HTG) Pipe.1.625 is inside (ARC) Slab.0.4
+
+Type: Inside
+Clash Size:
+- Length: 37 mm
+- Width: 21 mm
+- Height: 37 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5220772', 'Rohrtypen:Stahl_EN10220_1D-TS:8343649']","['IfcSlabType', 'IfcPipeSegmentType']","['3O1IQJ$r59m9hdigo$nLIm', '3B36kJLw9DTAy81gJJ7mIk']",7.378371953964233,0.02619,Relevant,Hard Clash,High,"The images show a physical overlap between the pipe and the slab, classifying it as a hard clash. The pipe is penetrating the slab, which could cause installation issues or structural problems. The clash size exceeds tolerances, indicating a need for resolution.",2619,Relevant,Hard Clash
+(HTG) Pipe.2.206 is inside (ARC) Slab.1.2,20de07cc-ca94-4583-9439-49d746da3ad3,"(HTG) Pipe.2.206 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 37 mm
+- Width: 21 mm
+- Height: 37 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', 'Rohrtypen:Stahl_EN10220_1D-TS:8340224']","['IfcSlabType', 'IfcPipeSegmentType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nVF']",7.380533695220947,0.026260000000000002,Irrelevant,Intentional/Tolerable Clash,High,"The clash size is small, with dimensions well within the provided tolerance (50 mm in both horizontal and vertical directions). The overlap is minor and likely does not affect functionality, safety, or constructability, suggesting it could be an intentional or tolerable situation.",2626,Irrelevant,Intentional/Tolerable Clash
+(HTG) Pipe Fitting.2.19.11 is inside (ARC) Slab.1.2,2fa23719-1331-4737-8a57-5c35621a4523,"(HTG) Pipe Fitting.2.19.11 is inside (ARC) Slab.1.2
+
+Type: Inside
+Clash Size:
+- Length: 23 mm
+- Width: 21 mm
+- Height: 23 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5228889', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8341117']","['IfcSlabType', 'IfcPipeFittingType']","['0gjFHjjvD7S8kZrgPA3ys5', '3B36kJLw9DTAy81gJJ7nAo']",7.078006267547607,0.00479,Relevant,Hard Clash,High,"The description indicates that a pipe fitting is physically inside a structural slab, which qualifies as a Hard Clash due to physical overlap between two distinct component types - 'IfcSlabType' and 'IfcPipeFittingType'. The given clash size, although small, signifies a physical intersection that typically must be resolved to ensure the pipe fitting functions properly without structural interference and that the integrity of the slab is not compromised. Furthermore, since there's no indication that this overlap is deliberate or tolerable, and considering the tolerance limit provided, this clash is relevant and necessitates action.",479,Relevant,Hard Clash
+(ELE) Duct.1.4 clashes with (ARC) Beam.1.35,c3c45e55-8109-4943-9e14-be47bb7cde3d,"(ELE) Duct.1.4 clashes with (ARC) Beam.1.35
+
+Type: Overlapping
+Clash Size:
+- Length: 260 mm
+- Width: 250 mm
+- Height: 130 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['STL_HEA Tr??ger:I_HEA 260:5632653', 'Rechteck:Busbar:8093754']","['IfcBeamType', 'IfcDuctSegmentType']","['1Gd0Em8MH27A7gGJVZPz$6', '0zSbGJXF51WxOdq$Xp20I5']",8.105596542358398,0.02621,Relevant,Hard Clash,High,"The images show a direct geometric intersection between the duct and the beam, indicating a hard clash. The clash dimensions suggest a substantial overlap, exceeding the horizontal and vertical tolerances of 50 mm. This physical overlap needs resolution to prevent potential construction issues or system interference.",2621,Relevant,Hard Clash
+(HTG) Pipe Fitting.1.27.17 is inside (ARC) Slab.0.4,b9502c7f-c094-4443-96f0-75c38bb0a2a6,"(HTG) Pipe Fitting.1.27.17 is inside (ARC) Slab.0.4
+
+Type: Inside
+Clash Size:
+- Length: 23 mm
+- Width: 21 mm
+- Height: 23 mm
+- Volume: 0.00 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['Geschossdecke:ENT_I_300+200_GD+FB:5220772', '_Stahl_CAx Bogen Stahl_10220 RFaktor:1D:8341675']","['IfcSlabType', 'IfcPipeFittingType']","['3O1IQJ$r59m9hdigo$nLIm', '3B36kJLw9DTAy81gJJ7nna']",7.522636651992798,0.00491,Relevant,Hard Clash,High,"The clash involves two different types of components, a pipe fitting and a slab, which are physically intersecting with one another. Given that the pipe fitting is located inside the slab, this represents a hard clash since physical components are overlapping/intersecting. The presence of a hard clash typically necessitates resolution, as it would likely prevent proper installation or function of one or both elements, particularly if the pipe is intended to convey fluids. The clash dimensions, though small, indicate an overlap that could be problematic for construction and functionality. The tolerance information also suggests that the current overlap exceeds acceptable limits, further supporting the need for action.",491,Relevant,Hard Clash
+(ODF) Slab.-1.14.5 clashes with (ODF) Object.-1.18,bc206546-87a2-4fd9-9fe4-8306379f9f43,"(ODF) Slab.-1.14.5 clashes with (ODF) Object.-1.18
+
+Type: Overlapping
+Clash Size:
+- Length: 930 mm
+- Width: 70 mm
+- Height: 150 mm
+- Volume: 0.01 m3
+
+Tolerance: G
+- Horizontal: 50 mm
+- Vertical: 50 mm
+- Volume: -","['WINKELSTUETZER 3:WINKELSTUETZER 3:5240276', 'Geschossdecke:SH_Gehweg_Betonpflaster:5242287']","['IfcBuildingElementProxyType', 'IfcSlabType']","['0ju5J3NVjENQADRTDhICnK', '1Qibxw$lrF7PrZgGNjLdhj']",9.000520706176758,0.02661,Relevant,Hard Clash,High,"The clash involves a direct physical intersection between an IfcSlabType and another building element, indicated by their overlapping volumes (930 mm x 70 mm x 150 mm). The size of the overlap exceeds the horizontal and vertical tolerance limits (50 mm each), suggesting that this is not an intentional or minor clash. Given the dimensions and nature, this overlap needs addressing to avoid structural issues or potential constructability problems.",2661,Relevant,Hard Clash

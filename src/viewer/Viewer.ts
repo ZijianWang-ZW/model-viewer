@@ -7,6 +7,7 @@ import { AdaptiveResolutionController } from '../adaptiveRes';
 import { InteractionCullingController } from '../culling';
 import { SelectionController } from '../selection';
 import { HighlightController } from '../highlight';
+import { ModelManager, type DisciplineType } from '../modelManager';
 
 export interface ViewerStats {
   originalMeshes: number;
@@ -51,6 +52,9 @@ export class Viewer {
 
   // Clipping
   private clipperCtrl!: ClipperController;
+
+  // Model management
+  private modelManager = new ModelManager();
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -128,7 +132,7 @@ export class Viewer {
   }
 
   // Public API
-  async loadGLBFromFile(file: File) {
+  async loadGLBFromFile(file: File, discipline?: DisciplineType) {
     this.clearPreviousModel();
     const url = URL.createObjectURL(file);
     try {
@@ -165,10 +169,68 @@ export class Viewer {
       // Disable highlighting by default for new model
       this.highlightCtrl.highlightTextMeshes(false, '');
 
-      // Notify that a new model was loaded
-      window.dispatchEvent(new CustomEvent('viewer:modelLoaded'));
+      // Register with model manager
+      if (discipline) {
+        const modelId = this.modelManager.addModel(file.name, discipline, root, this.currentBatching);
+        (root as any).userData.modelId = modelId;
+      }
 
-      this.fitCameraToObject(root);
+      // Notify that a new model was loaded
+      window.dispatchEvent(new CustomEvent('viewer:modelLoaded', { detail: { discipline } }));
+
+      this.fitCameraToAllModels();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * Load additional model without clearing existing ones
+   */
+  async loadAdditionalModel(file: File, discipline: DisciplineType): Promise<string> {
+    const url = URL.createObjectURL(file);
+    try {
+      const gltf = await this.loader.loadAsync(url);
+      const root = gltf.scene;
+      (root as any).userData.isUserModel = true;
+      
+      // Mark meshes
+      const toMark: THREE.Mesh[] = [];
+      root.traverse(o => { const m = o as THREE.Mesh; if ((m as any).isMesh) toMark.push(m); });
+      for (const m of toMark) {
+        (m as any).userData = (m as any).userData || {};
+        (m as any).userData.isUserModel = true;
+      }
+      
+      this.scene.add(root);
+
+      // Per-model batching
+      let modelBatching: BatchingResult | null = null;
+      if (this.batchingEnabled) {
+        const allow32 = this.supportsUint32Indices();
+        modelBatching = batchMeshes(root, {
+          allow32Bit: allow32,
+          maxVerticesPerBatch: this.maxVerticesPerBatch
+        }) || null;
+      }
+      
+      this.cullingCtrl.register(root);
+
+      // Scale clip plane to accommodate all models
+      this.clipperCtrl.scaleSizeToUserModels(this.scene);
+
+      if (this.edgesEnabled) this.addEdgesForCurrentModel();
+
+      // Register with model manager
+      const modelId = this.modelManager.addModel(file.name, discipline, root, modelBatching);
+      (root as any).userData.modelId = modelId;
+
+      // Notify that a new model was loaded
+      window.dispatchEvent(new CustomEvent('viewer:modelLoaded', { detail: { discipline, modelId } }));
+
+      this.fitCameraToAllModels();
+      
+      return modelId;
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -372,6 +434,45 @@ export class Viewer {
 
   private fitCameraToObject(object: THREE.Object3D) {
     const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+    let distance = 10;
+    if ((this.camera as any).isPerspectiveCamera) {
+      const persp = this.camera as THREE.PerspectiveCamera;
+      const fov = persp.fov * (Math.PI / 180);
+      distance = Math.abs(maxDim / Math.tan(fov / 2)) * 0.5;
+    } else {
+      const ortho = this.camera as THREE.OrthographicCamera;
+      const span = maxDim * 1.5;
+      ortho.top = span / 2; ortho.bottom = -span / 2; ortho.left = -span / 2; ortho.right = span / 2;
+      ortho.updateProjectionMatrix();
+      distance = maxDim * 2;
+    }
+
+    const dir = new THREE.Vector3(1, 1, 1).normalize();
+    const eye = center.clone().add(dir.multiplyScalar(distance));
+    this.world.camera.controls.setLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z);
+  }
+
+  /**
+   * Fit camera to all loaded models
+   */
+  private fitCameraToAllModels() {
+    const box = new THREE.Box3();
+    let hasAny = false;
+    
+    this.scene.traverse(o => {
+      const m = o as THREE.Mesh;
+      if ((m as any).isMesh && (m as any).userData?.isUserModel && !(m as any).userData?.isEdgeOverlay) {
+        box.expandByObject(m);
+        hasAny = true;
+      }
+    });
+
+    if (!hasAny) return;
+
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
@@ -608,6 +709,46 @@ export class Viewer {
       }
     }
   }
+
+  // Model management API
+  getModelManager(): ModelManager {
+    return this.modelManager;
+  }
+
+  setModelVisibility(modelId: string, visible: boolean): void {
+    this.modelManager.setModelVisibility(modelId, visible);
+  }
+
+
+  setAllModelsVisibility(visible: boolean): void {
+    this.modelManager.setAllModelsVisibility(visible);
+  }
+
+  removeModel(modelId: string): void {
+    const model = this.modelManager.removeModel(modelId);
+    if (model) {
+      // Remove from scene
+      this.scene.remove(model.root);
+      
+      // Dispose geometry and materials
+      model.root.traverse((child: THREE.Object3D) => {
+        const anyChild = child as any;
+        if (anyChild.geometry?.dispose) anyChild.geometry.dispose();
+        const mat = anyChild.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(mat)) mat.forEach(m => m.dispose?.());
+        else mat?.dispose?.();
+      });
+
+      // Unbatch if needed
+      if (model.batching) {
+        unbatch(model.batching);
+      }
+
+      // Notify
+      window.dispatchEvent(new CustomEvent('viewer:modelRemoved', { detail: { modelId } }));
+    }
+  }
 }
+
 
 
