@@ -40,10 +40,12 @@ export class ModelLoaderController {
       const root = gltf.scene;
       (root as any).userData.isUserModel = true;
       
-      const toMark: THREE.Mesh[] = [];
+      const toMark: (THREE.Mesh | THREE.InstancedMesh)[] = [];
       root.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh) toMark.push(m);
+        // Mark both regular Mesh and InstancedMesh (GPU instancing)
+        if ((o as any).isMesh || (o as any).isInstancedMesh) {
+          toMark.push(o as THREE.Mesh | THREE.InstancedMesh);
+        }
       });
       for (const m of toMark) {
         (m as any).userData = (m as any).userData || {};
@@ -90,10 +92,12 @@ export class ModelLoaderController {
       const root = gltf.scene;
       (root as any).userData.isUserModel = true;
       
-      const toMark: THREE.Mesh[] = [];
+      const toMark: (THREE.Mesh | THREE.InstancedMesh)[] = [];
       root.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh) toMark.push(m);
+        // Mark both regular Mesh and InstancedMesh (GPU instancing)
+        if ((o as any).isMesh || (o as any).isInstancedMesh) {
+          toMark.push(o as THREE.Mesh | THREE.InstancedMesh);
+        }
       });
       for (const m of toMark) {
         (m as any).userData = (m as any).userData || {};
@@ -205,9 +209,11 @@ export class ModelLoaderController {
     let hasAny = false;
     
     this.scene.traverse(o => {
-      const m = o as THREE.Mesh;
-      if ((m as any).isMesh && (m as any).userData?.isUserModel && !(m as any).userData?.isEdgeOverlay) {
-        box.expandByObject(m);
+      // Support both regular Mesh and InstancedMesh
+      const isMesh = (o as any).isMesh;
+      const isInstancedMesh = (o as any).isInstancedMesh;
+      if ((isMesh || isInstancedMesh) && (o as any).userData?.isUserModel && !(o as any).userData?.isEdgeOverlay) {
+        box.expandByObject(o);
         hasAny = true;
       }
     });

@@ -23,12 +23,32 @@ export interface CameraFocusConfig {
  */
 export type SurroundingMode = 'normal' | 'hidden' | 'transparent';
 
+/**
+ * Result of GUID search - can be a regular Mesh or an InstancedMesh with instance index
+ */
+export interface GuidMatch {
+  object: THREE.Mesh | THREE.InstancedMesh;
+  instanceIndex?: number; // undefined for regular Mesh, 0-based index for InstancedMesh
+  globalId: string;
+}
+
+/**
+ * Highlight information for tracking highlighted objects
+ */
+interface HighlightInfo {
+  originalObject: THREE.Mesh | THREE.InstancedMesh;
+  highlightMesh: THREE.Mesh; // Highligh overlay
+  instanceIndex?: number; // undefined for regular Mesh
+}
+
 export class GuidController {
   private scene: THREE.Scene;
   private camera: SimpleCamera;
   
   private guidSelectedMeshes: THREE.Mesh[] = [];
   private guidHighlightOverlays: THREE.Mesh[] = [];
+  private guidMatches: GuidMatch[] = []; // Store GUID matches with instance info
+  private highlightInfos: HighlightInfo[] = []; // Store highlight info for cleanup
 
   // Surrounding objects control
   private surroundingMode: SurroundingMode = 'normal';
@@ -78,10 +98,34 @@ export class GuidController {
 
   /**
    * Find meshes by GUIDs across all loaded models
+   * Supports both regular Meshes and InstancedMesh with GPU instancing
    */
   findMeshesByGUIDs(guids: string[]): THREE.Mesh[] {
-    const guidSet = new Set(guids.map(g => g.trim().toLowerCase()));
+    const matches = this.findGuidMatches(guids);
+    
+    // Convert GuidMatch[] to Mesh[] for backward compatibility
+    // For InstancedMesh, we'll create proxy objects or handle separately in highlighting
     const foundMeshes: THREE.Mesh[] = [];
+    const seenObjects = new Set<THREE.Mesh | THREE.InstancedMesh>();
+    
+    matches.forEach(match => {
+      if (!seenObjects.has(match.object)) {
+        seenObjects.add(match.object);
+        // For InstancedMesh, we still add it to the list
+        // Highlighting logic will handle the instance index separately
+        foundMeshes.push(match.object as THREE.Mesh);
+      }
+    });
+    
+    return foundMeshes;
+  }
+
+  /**
+   * Find GUID matches with full information (including instance indices)
+   */
+  private findGuidMatches(guids: string[]): GuidMatch[] {
+    const guidSet = new Set(guids.map(g => g.trim().toLowerCase()));
+    const foundMatches: GuidMatch[] = [];
     
     console.log('='.repeat(60));
     console.log('[GUID Search] 🔍 Starting search...');
@@ -89,65 +133,124 @@ export class GuidController {
     console.log('[GUID Search] Normalized (lowercase):', Array.from(guidSet));
     
     let checkedCount = 0;
+    let instancedMeshCount = 0;
+    let regularMeshCount = 0;
     let sampleGUIDs: string[] = [];
     
     this.scene.traverse(obj => {
-      const mesh = obj as THREE.Mesh;
-      if (!(mesh as any).isMesh) return;
-      if (!(mesh as any).userData?.isUserModel) return;
-      if ((mesh as any).userData?.isMergedBatch) return;
-      if ((mesh as any).userData?.isEdgeOverlay) return;
-      
-      checkedCount++;
-      const userData = (mesh as any).userData || {};
-      
-      if (sampleGUIDs.length < 3 && userData.name) {
-        sampleGUIDs.push(userData.name);
+      // Check for regular Mesh
+      if ((obj as any).isMesh && !(obj as any).isInstancedMesh) {
+        const mesh = obj as THREE.Mesh;
+        if (!(mesh as any).userData?.isUserModel) return;
+        if ((mesh as any).userData?.isMergedBatch) return;
+        if ((mesh as any).userData?.isEdgeOverlay) return;
+        
+        checkedCount++;
+        regularMeshCount++;
+        const userData = (mesh as any).userData || {};
+        
+        if (sampleGUIDs.length < 3) {
+          const firstGuid = userData.name || mesh.name || userData.GlobalId;
+          if (firstGuid) sampleGUIDs.push(String(firstGuid));
+        }
+        
+        const possibleGuids = [
+          userData.name,
+          mesh.name,
+          userData.guid,
+          userData.GlobalId,
+          userData.expressID,
+          userData.ifcGuid,
+          userData.GUID,
+          userData.globalId // lowercase variant
+        ].filter(Boolean).map(g => String(g).toLowerCase());
+        
+        for (const guid of possibleGuids) {
+          if (guidSet.has(guid)) {
+            console.log('[GUID Search] ✅ FOUND MATCH (Regular Mesh)!');
+            console.log('  - Searched for:', guid);
+            console.log('  - mesh.name:', mesh.name);
+            foundMatches.push({
+              object: mesh,
+              globalId: guid
+            });
+            break;
+          }
+        }
       }
       
-      const possibleGuids = [
-        userData.name,
-        mesh.name,
-        userData.guid,
-        userData.GlobalId,
-        userData.expressID,
-        userData.ifcGuid,
-        userData.GUID
-      ].filter(Boolean).map(g => String(g).toLowerCase());
-      
-      if (checkedCount === 1) {
-        console.log('[GUID Search] 📋 First mesh example:');
-        console.log('  - mesh.name:', mesh.name);
-        console.log('  - userData.name:', userData.name);
-        console.log('  - Checking against:', possibleGuids);
-      }
-      
-      for (const guid of possibleGuids) {
-        if (guidSet.has(guid)) {
-          console.log('[GUID Search] ✅ FOUND MATCH!');
-          console.log('  - Searched for:', Array.from(guidSet)[0]);
-          console.log('  - Found:', guid);
-          console.log('  - mesh.name:', mesh.name);
-          console.log('  - userData:', userData);
-          foundMeshes.push(mesh);
-          break;
+      // Check for InstancedMesh (GPU Instancing)
+      if ((obj as any).isInstancedMesh) {
+        const instancedMesh = obj as THREE.InstancedMesh;
+        if (!(instancedMesh as any).userData?.isUserModel) return;
+        if ((instancedMesh as any).userData?.isMergedBatch) return;
+        if ((instancedMesh as any).userData?.isEdgeOverlay) return;
+        
+        checkedCount++;
+        instancedMeshCount++;
+        const userData = (instancedMesh as any).userData || {};
+        
+        // Check if this InstancedMesh has globalIds array (from GPU instancing)
+        const globalIds = userData.globalIds;
+        if (Array.isArray(globalIds) && globalIds.length > 0) {
+          // This is a GPU instancing node - check each instance's GlobalId
+          if (sampleGUIDs.length < 3 && globalIds[0]) {
+            sampleGUIDs.push(String(globalIds[0]));
+          }
+          
+          globalIds.forEach((instanceGlobalId: string, instanceIndex: number) => {
+            const normalizedId = String(instanceGlobalId).toLowerCase();
+            if (guidSet.has(normalizedId)) {
+              console.log('[GUID Search] ✅ FOUND MATCH (InstancedMesh Instance)!');
+              console.log('  - Searched for:', normalizedId);
+              console.log('  - Instance index:', instanceIndex);
+              console.log('  - Total instances:', globalIds.length);
+              foundMatches.push({
+                object: instancedMesh,
+                instanceIndex: instanceIndex,
+                globalId: normalizedId
+              });
+            }
+          });
+        } else {
+          // Fallback: check node.name or userData.name (single instance case)
+          const possibleGuids = [
+            userData.name,
+            instancedMesh.name,
+            userData.globalId,
+            userData.GlobalId
+          ].filter(Boolean).map(g => String(g).toLowerCase());
+          
+          for (const guid of possibleGuids) {
+            if (guidSet.has(guid)) {
+              console.log('[GUID Search] ✅ FOUND MATCH (InstancedMesh, no instance index)!');
+              console.log('  - Searched for:', guid);
+              foundMatches.push({
+                object: instancedMesh,
+                globalId: guid
+              });
+              break;
+            }
+          }
         }
       }
     });
     
     console.log(`[GUID Search] 📊 Results:`);
-    console.log(`  - Meshes checked: ${checkedCount}`);
-    console.log(`  - Matches found: ${foundMeshes.length}`);
+    console.log(`  - Objects checked: ${checkedCount}`);
+    console.log(`  - Regular meshes: ${regularMeshCount}`);
+    console.log(`  - Instanced meshes: ${instancedMeshCount}`);
+    console.log(`  - Matches found: ${foundMatches.length}`);
     console.log(`  - Sample GUIDs in model:`, sampleGUIDs);
     
-    if (foundMeshes.length === 0) {
+    if (foundMatches.length === 0) {
       console.warn('[GUID Search] ⚠️ No matches found!');
       console.log('[GUID Search] 💡 Tip: Run debugViewer.listGUIDs() to see all available GUIDs');
     }
     
     console.log('='.repeat(60));
     
-    return foundMeshes;
+    return foundMatches;
   }
 
   /**
@@ -208,25 +311,90 @@ export class GuidController {
    * Find and focus on objects by GUIDs
    */
   findAndFocusByGUIDs(guids: string[]): { found: THREE.Mesh[], notFound: number } {
+    // Get matches with full information
+    this.guidMatches = this.findGuidMatches(guids);
+    
+    // Get unique objects for backward compatibility
     const foundMeshes = this.findMeshesByGUIDs(guids);
     
     if (foundMeshes.length > 0) {
       this.clearGuidHighlights();
-      this.addGuidHighlights(foundMeshes);
-      this.focusOnObjects(foundMeshes, true);
+      this.addGuidHighlightsFromMatches(this.guidMatches);
+      
+      // Create proxy meshes for focusing (handle InstancedMesh separately)
+      const focusObjects = this.createFocusObjects(this.guidMatches);
+      this.focusOnObjects(focusObjects, true);
       this.guidSelectedMeshes = foundMeshes;
     }
     
     return {
       found: foundMeshes,
-      notFound: guids.length - foundMeshes.length
+      notFound: guids.length - this.guidMatches.length
     };
   }
 
   /**
+   * Create focus objects from GUID matches
+   * For InstancedMesh, create temporary Mesh at instance position
+   */
+  private createFocusObjects(matches: GuidMatch[]): THREE.Mesh[] {
+    const focusObjects: THREE.Mesh[] = [];
+    
+    matches.forEach(match => {
+      if ((match.object as any).isInstancedMesh && match.instanceIndex !== undefined) {
+        const instancedMesh = match.object as THREE.InstancedMesh;
+        const instanceIndex = match.instanceIndex;
+        
+        // Get instance transformation matrix
+        const matrix = new THREE.Matrix4();
+        instancedMesh.getMatrixAt(instanceIndex, matrix);
+        
+        // Create a temporary mesh at the instance position for focusing
+        const geometry = instancedMesh.geometry;
+        const material = instancedMesh.material;
+        const singleMesh = new THREE.Mesh(
+          geometry,
+          Array.isArray(material) ? material[0] : material
+        );
+        singleMesh.applyMatrix4(matrix);
+        singleMesh.applyMatrix4(instancedMesh.matrixWorld);
+        
+        focusObjects.push(singleMesh);
+      } else {
+        // Regular mesh - use as is
+        focusObjects.push(match.object as THREE.Mesh);
+      }
+    });
+    
+    return focusObjects;
+  }
+
+  /**
    * Add highlight overlays to selected meshes with different colors
+   * Legacy method - maintains backward compatibility
    */
   addGuidHighlights(meshes: THREE.Mesh[]): void {
+    // Store selected meshes for surrounding mode to work
+    this.guidSelectedMeshes = meshes;
+    
+    // If we have GUID matches, use the enhanced method
+    if (this.guidMatches.length > 0) {
+      this.addGuidHighlightsFromMatches(this.guidMatches);
+      return;
+    }
+    
+    // Fallback for direct mesh highlighting (backward compatibility)
+    const matches: GuidMatch[] = meshes.map(mesh => ({
+      object: mesh,
+      globalId: mesh.name || (mesh as any).userData?.name || 'unknown'
+    }));
+    this.addGuidHighlightsFromMatches(matches);
+  }
+
+  /**
+   * Add highlights from GUID matches (supports InstancedMesh)
+   */
+  private addGuidHighlightsFromMatches(matches: GuidMatch[]): void {
     // Color palette for multiple objects
     const colorPalette = [
       { name: 'Green', color: 0x00ff00 },      // 1st object: Green
@@ -239,16 +407,10 @@ export class GuidController {
       { name: 'Pink', color: 0xff0088 }        // 8th object: Pink
     ];
 
-    console.log(`[GuidController] Adding highlights to ${meshes.length} mesh(es) with different colors`);
+    console.log(`[GuidController] Adding highlights to ${matches.length} object(s) with different colors`);
 
-    meshes.forEach((mesh, index) => {
-      const geometry = mesh.geometry as THREE.BufferGeometry;
-      if (!geometry) {
-        console.warn(`[GuidController] Mesh ${index} has no geometry, skipping highlight`);
-        return;
-      }
-
-      // Select color from palette (cycle if more objects than colors)
+    matches.forEach((match, index) => {
+      // Select color from palette
       const paletteIndex = index % colorPalette.length;
       const colorInfo = colorPalette[paletteIndex];
 
@@ -260,28 +422,82 @@ export class GuidController {
         side: THREE.DoubleSide
       });
 
-      const overlayGeom = new THREE.BufferGeometry();
-      overlayGeom.setAttribute('position', geometry.getAttribute('position'));
+      let highlightMesh: THREE.Mesh;
       
-      const index_attr = geometry.getIndex();
-      if (index_attr) {
-        overlayGeom.setIndex(index_attr);
-      }
+      // Handle InstancedMesh differently
+      if ((match.object as any).isInstancedMesh && match.instanceIndex !== undefined) {
+        const instancedMesh = match.object as THREE.InstancedMesh;
+        const instanceIndex = match.instanceIndex;
+        
+        console.log(`[GuidController] Creating highlight for InstancedMesh instance ${instanceIndex}`);
+        
+        // Clone geometry from InstancedMesh
+        const geometry = instancedMesh.geometry.clone();
+        
+        // Get instance transformation matrix (relative to InstancedMesh)
+        const instanceMatrix = new THREE.Matrix4();
+        instancedMesh.getMatrixAt(instanceIndex, instanceMatrix);
+        
+        // Create highlight mesh
+        highlightMesh = new THREE.Mesh(geometry, highlightMaterial);
+        
+        // Calculate world matrix: parent world matrix × instance matrix
+        const worldMatrix = new THREE.Matrix4();
+        worldMatrix.multiplyMatrices(instancedMesh.matrixWorld, instanceMatrix);
+        
+        // Apply world transformation to highlight mesh
+        highlightMesh.applyMatrix4(worldMatrix);
+        
+        // Add to scene (not as child, since InstancedMesh can't have children)
+        // Note: We've already applied the world transform, so add directly to scene
+        this.scene.add(highlightMesh);
+        
+        console.log(`[GuidController] ✓ Added ${colorInfo.name} highlight for InstancedMesh instance ${instanceIndex}`);
+        console.log(`  - Instance GlobalId: ${match.globalId}`);
+        
+        // Store highlight info
+        this.highlightInfos.push({
+          originalObject: instancedMesh,
+          highlightMesh: highlightMesh,
+          instanceIndex: instanceIndex
+        });
+      } else {
+        // Regular Mesh - use overlay approach
+        const mesh = match.object as THREE.Mesh;
+        const geometry = mesh.geometry as THREE.BufferGeometry;
+        if (!geometry) {
+          console.warn(`[GuidController] Mesh ${index} has no geometry, skipping highlight`);
+          return;
+        }
 
-      const overlay = new THREE.Mesh(overlayGeom, highlightMaterial);
-      (overlay as any).userData.isGuidHighlight = true;
-      (overlay as any).userData.highlightColor = colorInfo.name;
-      overlay.renderOrder = 999;  // Render last
-      overlay.visible = true;      // Ensure visible
+        const overlayGeom = new THREE.BufferGeometry();
+        overlayGeom.setAttribute('position', geometry.getAttribute('position'));
+        
+        const index_attr = geometry.getIndex();
+        if (index_attr) {
+          overlayGeom.setIndex(index_attr);
+        }
+
+        highlightMesh = new THREE.Mesh(overlayGeom, highlightMaterial);
+        highlightMesh.renderOrder = 999;  // Render last
+        highlightMesh.visible = true;
+        
+        // Add as child of original mesh
+        mesh.add(highlightMesh);
+        
+        console.log(`[GuidController] ✓ Added ${colorInfo.name} highlight (${index + 1}/${matches.length}) to mesh: ${mesh.name}`);
+        
+        // Store highlight info
+        this.highlightInfos.push({
+          originalObject: mesh,
+          highlightMesh: highlightMesh
+        });
+      }
       
-      mesh.add(overlay);
-      this.guidHighlightOverlays.push(overlay);
-      
-      console.log(`[GuidController] ✓ Added ${colorInfo.name} highlight (${index + 1}/${meshes.length}) to mesh: ${mesh.name}`);
-      console.log(`  - Color: ${colorInfo.name} (0x${colorInfo.color.toString(16)})`);
-      console.log(`  - Mesh visible:`, mesh.visible);
-      console.log(`  - Mesh children:`, mesh.children.length);
-      console.log(`  - Overlay visible:`, overlay.visible);
+      // Common properties for all highlights
+      (highlightMesh as any).userData.isGuidHighlight = true;
+      (highlightMesh as any).userData.highlightColor = colorInfo.name;
+      this.guidHighlightOverlays.push(highlightMesh);
     });
 
     console.log(`[GuidController] Total highlights created: ${this.guidHighlightOverlays.length}`);
@@ -294,14 +510,24 @@ export class GuidController {
     // Restore surrounding objects first
     this.restoreSurroundingObjects();
 
-    // Clear highlights
+    // Clear highlights - handle both regular overlays and InstancedMesh highlights
     this.guidHighlightOverlays.forEach(overlay => {
-      overlay.parent?.remove(overlay);
+      // Remove from parent (for regular meshes) or scene (for InstancedMesh highlights)
+      if (overlay.parent) {
+        overlay.parent.remove(overlay);
+      } else {
+        this.scene.remove(overlay);
+      }
       overlay.geometry.dispose();
-      (overlay.material as THREE.Material).dispose();
+      const mat = overlay.material as THREE.Material;
+      if (mat) {
+        mat.dispose();
+      }
     });
     this.guidHighlightOverlays = [];
     this.guidSelectedMeshes = [];
+    this.guidMatches = [];
+    this.highlightInfos = [];
   }
 
   /**
@@ -320,17 +546,19 @@ export class GuidController {
 
   /**
    * Set surrounding objects mode (hide or make transparent)
+   * Supports both regular Meshes and InstancedMesh
    */
   setSurroundingMode(mode: SurroundingMode): void {
-    if (this.guidSelectedMeshes.length === 0) {
-      console.warn('[GuidController] ⚠️ No objects selected. Search for GUIDs first.');
-      console.log('[GuidController] guidSelectedMeshes:', this.guidSelectedMeshes);
+    console.log('[GuidController] setSurroundingMode called with mode:', mode);
+    console.log('[GuidController] guidSelectedMeshes count:', this.guidSelectedMeshes.length);
+    console.log('[GuidController] guidMatches count:', this.guidMatches.length);
+    
+    if (this.guidSelectedMeshes.length === 0 && this.guidMatches.length === 0) {
+      console.warn('[GuidController] ⚠️ No objects selected. Cannot set surrounding mode.');
       return;
     }
 
     console.log(`[GuidController] 🔄 Setting surrounding mode: ${mode}`);
-    console.log(`[GuidController] Selected meshes count: ${this.guidSelectedMeshes.length}`);
-    console.log(`[GuidController] Selected mesh names:`, this.guidSelectedMeshes.map(m => m.name));
 
     // Restore previous state first
     this.restoreSurroundingObjects();
@@ -342,15 +570,28 @@ export class GuidController {
       return; // Already restored, nothing more to do
     }
 
-    const selectedSet = new Set(this.guidSelectedMeshes);
+    // Create set of selected objects (including InstancedMesh)
+    const selectedObjects = new Set<THREE.Mesh | THREE.InstancedMesh>();
+    this.guidMatches.forEach(match => {
+      selectedObjects.add(match.object);
+    });
+    this.guidSelectedMeshes.forEach(mesh => {
+      selectedObjects.add(mesh);
+    });
+
     let affectedCount = 0;
     let skippedSelected = 0;
     let skippedOther = 0;
 
-    // Traverse scene and apply mode to unselected meshes
+    // Traverse scene and apply mode to unselected objects
     this.scene.traverse((obj) => {
-      const mesh = obj as THREE.Mesh;
-      if (!(mesh as any).isMesh) return;
+      const isMesh = (obj as any).isMesh;
+      const isInstancedMesh = (obj as any).isInstancedMesh;
+      
+      if (!isMesh && !isInstancedMesh) return;
+      
+      const mesh = obj as THREE.Mesh | THREE.InstancedMesh;
+      
       if (!(mesh as any).userData?.isUserModel) {
         skippedOther++;
         return;
@@ -368,19 +609,18 @@ export class GuidController {
         return;
       }
 
-      // Skip selected meshes
-      if (selectedSet.has(mesh)) {
+      // Skip selected objects (for InstancedMesh, if any instance is selected, keep entire mesh visible)
+      if (selectedObjects.has(mesh)) {
         skippedSelected++;
-        console.log(`[GuidController] Skipping selected mesh: ${mesh.name}`);
         return;
       }
 
       // Store original state
-      if (!this.originalVisibility.has(mesh)) {
-        this.originalVisibility.set(mesh, mesh.visible);
+      if (!this.originalVisibility.has(mesh as THREE.Mesh)) {
+        this.originalVisibility.set(mesh as THREE.Mesh, mesh.visible);
       }
-      if (!this.originalMaterials.has(mesh)) {
-        this.originalMaterials.set(mesh, mesh.material);
+      if (!this.originalMaterials.has(mesh as THREE.Mesh)) {
+        this.originalMaterials.set(mesh as THREE.Mesh, mesh.material);
       }
 
       if (mode === 'hidden') {
@@ -400,7 +640,7 @@ export class GuidController {
     });
 
     console.log(`[GuidController] ✅ Surrounding mode applied: ${mode}`);
-    console.log(`[GuidController] Affected meshes: ${affectedCount}`);
+    console.log(`[GuidController] Affected objects: ${affectedCount}`);
     console.log(`[GuidController] Skipped (selected): ${skippedSelected}`);
     console.log(`[GuidController] Skipped (other): ${skippedOther}`);
   }
@@ -445,86 +685,156 @@ export class GuidController {
   }
 
   /**
-   * Debug: List all GUIDs in loaded models
+   * Debug: List all GUIDs in loaded models (supports InstancedMesh)
    */
   listAllGUIDs(): void {
     console.log('=== All GUIDs in Scene ===');
-    const guidMap = new Map<string, { name: string, type: string, userData: any }>();
+    const guidMap = new Map<string, { name: string, type: string, isInstanced: boolean, instanceIndex?: number, userData: any }>();
+    let instancedMeshCount = 0;
+    let regularMeshCount = 0;
     
     this.scene.traverse(obj => {
-      const mesh = obj as THREE.Mesh;
-      if (!(mesh as any).isMesh) return;
+      const isMesh = (obj as any).isMesh;
+      const isInstancedMesh = (obj as any).isInstancedMesh;
+      
+      if (!isMesh && !isInstancedMesh) return;
+      
+      const mesh = obj as THREE.Mesh | THREE.InstancedMesh;
       if (!(mesh as any).userData?.isUserModel) return;
       if ((mesh as any).userData?.isMergedBatch) return;
       if ((mesh as any).userData?.isEdgeOverlay) return;
       
       const userData = (mesh as any).userData || {};
-      const guids = [
-        userData.name,
-        mesh.name,
-        userData.guid,
-        userData.GlobalId,
-        userData.expressID,
-        userData.ifcGuid,
-        userData.GUID
-      ].filter(Boolean);
       
-      guids.forEach(guid => {
-        guidMap.set(String(guid), {
-          name: mesh.name,
-          type: mesh.type,
-          userData: userData
+      if (isInstancedMesh) {
+        instancedMeshCount++;
+        // Check for globalIds array
+        const globalIds = userData.globalIds;
+        if (Array.isArray(globalIds) && globalIds.length > 0) {
+          // GPU instancing - each instance has its own GlobalId
+          globalIds.forEach((guid: string, instanceIndex: number) => {
+            guidMap.set(String(guid), {
+              name: mesh.name,
+              type: mesh.type,
+              isInstanced: true,
+              instanceIndex: instanceIndex,
+              userData: userData
+            });
+          });
+        } else {
+          // Fallback: single GUID for InstancedMesh
+          const guids = [
+            userData.name,
+            mesh.name,
+            userData.globalId,
+            userData.GlobalId
+          ].filter(Boolean);
+          guids.forEach(guid => {
+            guidMap.set(String(guid), {
+              name: mesh.name,
+              type: mesh.type,
+              isInstanced: true,
+              userData: userData
+            });
+          });
+        }
+      } else {
+        regularMeshCount++;
+        // Regular mesh
+        const guids = [
+          userData.name,
+          mesh.name,
+          userData.guid,
+          userData.GlobalId,
+          userData.expressID,
+          userData.ifcGuid,
+          userData.GUID,
+          userData.globalId
+        ].filter(Boolean);
+        
+        guids.forEach(guid => {
+          guidMap.set(String(guid), {
+            name: mesh.name,
+            type: mesh.type,
+            isInstanced: false,
+            userData: userData
+          });
         });
-      });
+      }
     });
     
     console.log(`Total unique GUIDs: ${guidMap.size}`);
+    console.log(`Regular meshes: ${regularMeshCount}, InstancedMesh nodes: ${instancedMeshCount}`);
     console.table(Array.from(guidMap.entries()).slice(0, 20).map(([guid, info]) => ({
       GUID: guid,
       Name: info.name,
-      Type: info.type
+      Type: info.type,
+      Instanced: info.isInstanced ? `Yes (idx: ${info.instanceIndex ?? 'N/A'})` : 'No'
     })));
     
     console.log('Full GUID list:', Array.from(guidMap.keys()));
   }
 
   /**
-   * Debug: Show what's actually in the model's userData
+   * Debug: Show what's actually in the model's userData (supports InstancedMesh)
    */
   inspectModelUserData(): void {
     console.log('=== Inspecting Model UserData ===');
     let meshCount = 0;
+    let instancedMeshCount = 0;
     const samples: any[] = [];
     
     this.scene.traverse(obj => {
-      const mesh = obj as THREE.Mesh;
-      if (!(mesh as any).isMesh) return;
+      const isMesh = (obj as any).isMesh;
+      const isInstancedMesh = (obj as any).isInstancedMesh;
+      
+      if (!isMesh && !isInstancedMesh) return;
+      
+      const mesh = obj as THREE.Mesh | THREE.InstancedMesh;
       if (!(mesh as any).userData?.isUserModel) return;
       if ((mesh as any).userData?.isMergedBatch) return;
       if ((mesh as any).userData?.isEdgeOverlay) return;
       
-      meshCount++;
+      if (isInstancedMesh) {
+        instancedMeshCount++;
+      } else {
+        meshCount++;
+      }
       
       if (samples.length < 5) {
+        const userData = (mesh as any).userData || {};
         samples.push({
           name: mesh.name,
           type: mesh.type,
-          userData: mesh.userData,
-          userDataKeys: Object.keys(mesh.userData || {})
+          isInstancedMesh: isInstancedMesh,
+          instanceCount: isInstancedMesh ? (mesh as THREE.InstancedMesh).count : undefined,
+          hasGlobalIdsArray: Array.isArray(userData.globalIds),
+          globalIdsLength: Array.isArray(userData.globalIds) ? userData.globalIds.length : 0,
+          userData: userData,
+          userDataKeys: Object.keys(userData)
         });
       }
     });
     
-    console.log(`Total meshes found: ${meshCount}`);
-    console.log('Sample meshes (first 5):');
+    console.log(`Total meshes found: ${meshCount} regular, ${instancedMeshCount} InstancedMesh`);
+    console.log('Sample objects (first 5):');
     samples.forEach((sample, i) => {
-      console.log(`\n--- Mesh ${i + 1}: ${sample.name} ---`);
+      console.log(`\n--- Object ${i + 1}: ${sample.name} ---`);
       console.log('Type:', sample.type);
+      console.log('Is InstancedMesh:', sample.isInstancedMesh);
+      if (sample.isInstancedMesh) {
+        console.log('Instance count:', sample.instanceCount);
+        console.log('Has globalIds array:', sample.hasGlobalIdsArray);
+        console.log('globalIds length:', sample.globalIdsLength);
+        if (sample.hasGlobalIdsArray && sample.globalIdsLength > 0) {
+          console.log('First 3 GlobalIds:', (sample.userData.globalIds as string[]).slice(0, 3));
+        }
+      }
       console.log('UserData keys:', sample.userDataKeys);
       console.log('Full userData:', sample.userData);
     });
     
-    if (meshCount === 0) {
+    if (meshCount === 0 && instancedMeshCount === 0) {
       console.warn('⚠️ No meshes found! Check if batching is hiding them.');
       console.log('Try: Turn off batching first, then run this again');
     }

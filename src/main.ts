@@ -4,6 +4,7 @@ import { installClippingUI } from './clipping';
 import { installEdgesUI } from './edges';
 import { installHighlightUI } from './highlight';
 import { FileLoadManager } from './fileLoadManager';
+import { ClashCardManager } from './clashCardManager';
 
 const container = document.getElementById('container')!;
 const viewer = new Viewer(container);
@@ -36,6 +37,22 @@ fileLoadManager.setLoadCompleteCallback(() => {
   updateStats();
   updateModelsPanel();
   refreshBatchDetailsIfOpen();
+});
+
+// Clash card manager - handles clash detection visualization
+const clashCardManager = new ClashCardManager(viewer);
+
+// Open clash viewer button
+document.getElementById('open-clash-viewer')!.addEventListener('click', async () => {
+  if (!clashCardManager.hasClashes()) {
+    try {
+      await clashCardManager.loadClashesFromCSV('/clash_results_20.csv');
+    } catch (err) {
+      alert('Failed to load clash results: ' + err);
+    }
+  } else {
+    clashCardManager.showCard();
+  }
 });
 
 // Edges toggle button logic
@@ -217,10 +234,10 @@ const modelsList = document.getElementById('models-list')!;
 const modelCount = document.getElementById('model-count')!;
 const allModelsToggle = document.getElementById('all-models-toggle')!;
 
-const DISCIPLINE_ICONS: Record<DisciplineType, string> = {
+const DISCIPLINE_ICONS = {
   Architecture: '🏛️', Structure: '🏗️', Mechanical: '⚙️',
   Electrical: '⚡', Plumbing: '🚰', Other: '📦'
-};
+} as const;
 
 const EYE_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
 

@@ -182,8 +182,12 @@ export class Viewer {
     let unbatchedOriginals = 0;
     const materialSet = new Set<string>();
     this.scene.traverse(o => {
-      const m = o as THREE.Mesh;
-      if (!(m as any).isMesh) return;
+      // Support both regular Mesh and InstancedMesh
+      const isMesh = (o as any).isMesh;
+      const isInstancedMesh = (o as any).isInstancedMesh;
+      if (!isMesh && !isInstancedMesh) return;
+      
+      const m = o as THREE.Mesh | THREE.InstancedMesh;
       const ud = (m as any).userData || {};
       if (ud.isBatchedOriginal) originalMeshes++;
       else if (ud.isUserModel && !ud.isMergedBatch && !ud.isEdgeOverlay) {
@@ -241,9 +245,9 @@ export class Viewer {
       const allow32 = this.supportsUint32Indices();
       const candidates: THREE.Mesh[] = [];
       this.scene.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh && (m as any).userData?.isUserModel && !(m as any).userData.isMergedBatch) {
-          candidates.push(m);
+        // Only batch regular meshes, not InstancedMesh (already optimized)
+        if ((o as any).isMesh && !(o as any).isInstancedMesh && (o as any).userData?.isUserModel && !(o as any).userData.isMergedBatch) {
+          candidates.push(o as THREE.Mesh);
         }
       });
       const result = batchMeshesFromList(candidates, this.scene, {
@@ -298,9 +302,9 @@ export class Viewer {
       const allow32 = this.supportsUint32Indices();
       const candidates: THREE.Mesh[] = [];
       this.scene.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh && (m as any).userData?.isUserModel && !(m as any).userData.isMergedBatch && !(m as any).userData.isEdgeOverlay) {
-          candidates.push(m);
+        // Only batch regular meshes, not InstancedMesh (already optimized)
+        if ((o as any).isMesh && !(o as any).isInstancedMesh && (o as any).userData?.isUserModel && !(o as any).userData.isMergedBatch && !(o as any).userData.isEdgeOverlay) {
+          candidates.push(o as THREE.Mesh);
         }
       });
 
@@ -371,9 +375,11 @@ export class Viewer {
       const box = new THREE.Box3();
       let hasAny = false;
       this.scene.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh && (m as any).userData?.isUserModel) {
-          box.expandByObject(m);
+        // Support both regular Mesh and InstancedMesh for clipping
+        const isMesh = (o as any).isMesh;
+        const isInstancedMesh = (o as any).isInstancedMesh;
+        if ((isMesh || isInstancedMesh) && (o as any).userData?.isUserModel) {
+          box.expandByObject(o);
           hasAny = true;
         }
       });
@@ -392,9 +398,11 @@ export class Viewer {
       const box = new THREE.Box3();
       let hasAny = false;
       this.scene.traverse(o => {
-        const m = o as THREE.Mesh;
-        if ((m as any).isMesh && (m as any).userData?.isUserModel) {
-          box.expandByObject(m);
+        // Support both regular Mesh and InstancedMesh for clipping
+        const isMesh = (o as any).isMesh;
+        const isInstancedMesh = (o as any).isInstancedMesh;
+        if ((isMesh || isInstancedMesh) && (o as any).userData?.isUserModel) {
+          box.expandByObject(o);
           hasAny = true;
         }
       });

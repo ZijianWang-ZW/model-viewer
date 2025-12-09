@@ -181,6 +181,413 @@
       color: #fff;
     }
 
+    /* Clash Card Viewer - Modern Blue Design */
+    #clash-card-container {
+      position: fixed;
+      top: 280px;
+      right: 16px;
+      width: 360px;
+      max-height: calc(100vh - 300px);
+      z-index: 50;
+      display: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #clash-card-container.active {
+      display: block;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    #clash-card {
+      background: linear-gradient(135deg, #0a1929 0%, #0d2137 50%, #0f2744 100%);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(56, 189, 248, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #clash-card-header-bar {
+      background: linear-gradient(135deg, rgba(14, 116, 235, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%);
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #clash-card-header-bar h2 {
+      margin: 0;
+      font: 700 13px/1.2 system-ui;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+
+    .clash-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #clash-counter {
+      font: 600 11px/1 'Courier New', monospace;
+      color: #60a5fa;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    #clash-show-all {
+      background: rgba(37, 99, 235, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font: 600 10px/1 system-ui;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #clash-show-all:hover {
+      background: rgba(37, 99, 235, 0.35);
+      border-color: rgba(37, 99, 235, 0.6);
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+    }
+
+    #clash-close {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font: 600 14px/1 sans-serif;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #clash-close:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    }
+
+    #clash-card-content {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+      color: #fff;
+    }
+
+    #clash-card-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #clash-card-content::-webkit-scrollbar-track {
+      background: rgba(14, 116, 144, 0.1);
+      border-radius: 3px;
+    }
+
+    #clash-card-content::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
+      border-radius: 3px;
+    }
+
+    #clash-card-content::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .clash-card-header {
+      margin-bottom: 14px;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(14, 116, 144, 0.08) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-radius: 8px;
+    }
+
+    .clash-card-header h3 {
+      margin: 0 0 10px 0;
+      font: 600 14px/1.4 system-ui;
+      color: #e0f2fe;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .clash-object-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .clash-object-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: rgba(14, 116, 144, 0.15);
+      border-radius: 6px;
+      border-left: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .clash-object-item.found {
+      border-left-color: #10b981;
+    }
+
+    .clash-object-item.missing {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.success {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .status-dot.error {
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .clash-object-name {
+      font: 500 11px/1.4 system-ui;
+      color: #bfdbfe;
+      flex: 1;
+    }
+
+    .clash-object-item.missing .clash-object-name {
+      color: #fca5a5;
+    }
+
+    .clash-meta-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font: 700 11px/1 system-ui;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid transparent;
+    }
+
+    .badge-relevant {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .badge-irrelevant {
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.3) 0%, rgba(100, 116, 139, 0.3) 100%);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+    }
+
+    .badge-hard-clash {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      border-color: rgba(244, 63, 94, 0.5);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.5);
+    }
+
+    .badge-intentional-tolerable-clash {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .clash-card-section {
+      margin-bottom: 0;
+    }
+
+    .clash-ai-section {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(29, 78, 216, 0.08) 100%);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clash-ai-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .ai-confidence {
+      font: 600 10px/1 'Courier New', monospace;
+      color: #60a5fa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      background: rgba(37, 99, 235, 0.2);
+      border-radius: 4px;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+
+    .ai-reasoning {
+      font: 400 12px/1.6 system-ui;
+      color: #e0f2fe;
+      margin: 0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    #clash-card-navigation {
+      background: linear-gradient(135deg, rgba(14, 116, 235, 0.15) 0%, rgba(29, 78, 216, 0.1) 100%);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-top: 1px solid rgba(56, 189, 248, 0.2);
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      flex: 1;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(29, 78, 216, 0.2) 100%);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.4);
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font: 700 11px/1 system-ui;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(96, 165, 250, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .nav-btn:hover:not(:disabled)::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.4) 0%, rgba(29, 78, 216, 0.35) 100%);
+      border-color: rgba(96, 165, 250, 0.6);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      border-color: rgba(100, 116, 139, 0.2);
+      color: rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.3);
+    }
+
+    .nav-btn svg {
+      width: 14px;
+      height: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    #open-clash-viewer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      border: 1px solid rgba(96, 165, 250, 0.5);
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font: 700 12px/1 system-ui;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 
+        0 4px 16px rgba(37, 99, 235, 0.4),
+        0 0 0 1px rgba(96, 165, 250, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+    }
+
+    #open-clash-viewer:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 24px rgba(37, 99, 235, 0.6),
+        0 0 0 1px rgba(96, 165, 250, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
     #clip-config {
       position: relative;
       display: inline-block;
@@ -603,6 +1010,42 @@
       <div id="batch-details"></div>
     </div>
     <div id="container"></div>
+    
+    <!-- Clash Card Viewer -->
+    <div id="clash-card-container">
+      <div id="clash-card">
+        <div id="clash-card-header-bar">
+          <h2>Clashes</h2>
+          <div class="clash-controls">
+            <span id="clash-counter">0 / 0</span>
+            <button id="clash-show-all" title="Show all objects">Show All</button>
+            <button id="clash-close" title="Close">✕</button>
+          </div>
+        </div>
+        <div id="clash-card-content">
+          <!-- Content populated by ClashCardManager -->
+        </div>
+        <div id="clash-card-navigation">
+          <button id="clash-prev" class="nav-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>Previous</span>
+          </button>
+          <button id="clash-next" class="nav-btn">
+            <span>Next</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Clash Viewer Toggle Button -->
+    <button id="open-clash-viewer" title="Open Clash Viewer">
+      Clashes
+    </button>
   </div>
   <script type="module" nonce="dev" src="/src/main.ts"></script>
 </body>
