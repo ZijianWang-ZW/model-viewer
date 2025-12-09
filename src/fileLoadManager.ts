@@ -1,34 +1,20 @@
 import type { Viewer } from './viewer/Viewer';
-import type { DisciplineType } from './modelManager';
 
 /**
- * Manages multi-file loading workflow with discipline selection
+ * Simple file loader with drag & drop support
+ * Always clears previous model when loading a new one
  */
 export class FileLoadManager {
-  private fileQueue: File[] = [];
-  private currentFileIndex = 0;
   private viewer: Viewer;
-  
-  private disciplineModal: HTMLElement;
-  private disciplineOptions: NodeListOf<Element>;
-  private disciplineConfirm: HTMLButtonElement;
-  private disciplineCancel: HTMLElement;
   private fileInput: HTMLInputElement;
-  
-  private pendingFile: File | null = null;
-  private selectedDiscipline: DisciplineType | null = null;
+  private container: HTMLElement;
   
   private onLoadComplete?: () => void;
 
   constructor(viewer: Viewer) {
     this.viewer = viewer;
-    
-    // Get DOM elements
-    this.disciplineModal = document.getElementById('discipline-modal')!;
-    this.disciplineOptions = document.querySelectorAll('.discipline-option');
-    this.disciplineConfirm = document.getElementById('discipline-confirm') as HTMLButtonElement;
-    this.disciplineCancel = document.getElementById('discipline-cancel')!;
     this.fileInput = document.getElementById('file') as HTMLInputElement;
+    this.container = document.getElementById('container')!;
     
     this.setupEventListeners();
   }
@@ -41,128 +27,75 @@ export class FileLoadManager {
   }
 
   /**
-   * Start loading files - shows modal for first file
+   * Load a GLB file (always clears previous model)
    */
-  loadFiles(files: FileList | File[]): void {
-    this.fileQueue = Array.from(files);
-    this.currentFileIndex = 0;
-    this.processNextFile();
-  }
-
-  /**
-   * Process next file in queue
-   */
-  private processNextFile(): void {
-    if (this.currentFileIndex >= this.fileQueue.length) {
-      // All files processed
-      this.fileQueue = [];
-      this.currentFileIndex = 0;
-      this.fileInput.value = '';
-      return;
+  async loadFile(file: File): Promise<void> {
+    const t0 = performance.now();
+    
+    // Always clear previous model before loading new one
+    await this.viewer.loadGLBFromFile(file);
+    
+    const loadTime = (performance.now() - t0) / 1000;
+    console.log(`✅ Loaded ${file.name} in ${loadTime.toFixed(2)}s`);
+    
+    // Update load time stat
+    const loadSecEl = document.getElementById('stat-loadsec');
+    if (loadSecEl) loadSecEl.textContent = loadTime.toFixed(2);
+    
+    // Call callback to update UI
+    if (this.onLoadComplete) {
+      this.onLoadComplete();
     }
-    
-    const file = this.fileQueue[this.currentFileIndex];
-    this.showDisciplineModalForFile(file, this.currentFileIndex + 1, this.fileQueue.length);
   }
 
   /**
-   * Show discipline selection modal for a file
-   */
-  private showDisciplineModalForFile(file: File, fileNumber: number, totalFiles: number): void {
-    this.pendingFile = file;
-    this.selectedDiscipline = null;
-    this.disciplineOptions.forEach(opt => opt.classList.remove('selected'));
-    this.disciplineConfirm.disabled = true;
-    
-    // Update modal title to show progress
-    const modalTitle = this.disciplineModal.querySelector('h3');
-    if (modalTitle) {
-      if (totalFiles > 1) {
-        modalTitle.textContent = `Select Discipline (${fileNumber}/${totalFiles}): ${file.name}`;
-      } else {
-        modalTitle.textContent = `Select Discipline: ${file.name}`;
-      }
-    }
-    
-    this.disciplineModal.classList.add('active');
-  }
-
-  /**
-   * Reset modal to initial state
-   */
-  private resetDisciplineModal(): void {
-    this.disciplineModal.classList.remove('active');
-    this.disciplineOptions.forEach(opt => opt.classList.remove('selected'));
-    this.disciplineConfirm.disabled = true;
-    this.pendingFile = null;
-    this.selectedDiscipline = null;
-  }
-
-  /**
-   * Setup event listeners for modal and file input
+   * Setup event listeners for file input and drag & drop
    */
   private setupEventListeners(): void {
-    // Discipline option selection
-    this.disciplineOptions.forEach(option => {
-      option.addEventListener('click', () => {
-        this.disciplineOptions.forEach(opt => opt.classList.remove('selected'));
-        option.classList.add('selected');
-        this.selectedDiscipline = option.getAttribute('data-discipline') as DisciplineType;
-        this.disciplineConfirm.disabled = false;
-      });
-    });
-
-    // Cancel button
-    this.disciplineCancel.addEventListener('click', () => {
-      this.resetDisciplineModal();
-      this.fileQueue = [];
-      this.currentFileIndex = 0;
-      this.fileInput.value = '';
-    });
-
-    // Confirm button
-    this.disciplineConfirm.addEventListener('click', async () => {
-      if (!this.pendingFile || !this.selectedDiscipline) return;
-      
-      this.disciplineModal.classList.remove('active');
-      const t0 = performance.now();
-      
-      // Load model
-      await (this.viewer.getModelManager().hasModels()
-        ? this.viewer.loadAdditionalModel(this.pendingFile, this.selectedDiscipline)
-        : this.viewer.loadGLBFromFile(this.pendingFile, this.selectedDiscipline));
-      
-      const loadTime = (performance.now() - t0) / 1000;
-      console.log(`✅ Loaded ${this.pendingFile.name} in ${loadTime.toFixed(2)}s`);
-      
-      // Update load time stat
-      const loadSecEl = document.getElementById('stat-loadsec');
-      if (loadSecEl) loadSecEl.textContent = loadTime.toFixed(2);
-      
-      // Call callback to update UI
-      if (this.onLoadComplete) {
-        this.onLoadComplete();
-      }
-      
-      this.resetDisciplineModal();
-      
-      // Process next file in queue
-      this.currentFileIndex++;
-      this.processNextFile();
-    });
-
     // File input change
     this.fileInput.addEventListener('change', (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        this.loadFiles(files);
+        this.loadFile(files[0]); // Only load first file
       }
     });
 
     // Open button
-    document.getElementById('open')!.addEventListener('click', () => {
-      this.fileInput.click();
+    const openBtn = document.getElementById('open');
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        this.fileInput.click();
+      });
+    }
+
+    // Drag and drop
+    this.container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.container.style.opacity = '0.8';
+    });
+
+    this.container.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.container.style.opacity = '1';
+    });
+
+    this.container.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.container.style.opacity = '1';
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        // Find first .glb file
+        for (let i = 0; i < files.length; i++) {
+          if (files[i].name.toLowerCase().endsWith('.glb')) {
+            this.loadFile(files[i]);
+            break;
+          }
+        }
+      }
     });
   }
 }
-

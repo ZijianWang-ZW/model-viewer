@@ -1,12 +1,9 @@
 import * as THREE from 'three';
 import type { BatchingResult } from './batching';
 
-export type DisciplineType = 'Architecture' | 'Structure' | 'Mechanical' | 'Electrical' | 'Plumbing' | 'Other';
-
 export interface ModelData {
   id: string;
   name: string;
-  discipline: DisciplineType;
   root: THREE.Group;
   batching: BatchingResult | null;
   visible: boolean;
@@ -16,9 +13,9 @@ export class ModelManager {
   private models = new Map<string, ModelData>();
   private nextId = 1;
 
-  addModel(name: string, discipline: DisciplineType, root: THREE.Group, batching: BatchingResult | null): string {
+  addModel(name: string, root: THREE.Group, batching: BatchingResult | null): string {
     const id = `model_${this.nextId++}`;
-    this.models.set(id, { id, name, discipline, root, batching, visible: true });
+    this.models.set(id, { id, name, root, batching, visible: true });
     return id;
   }
 
@@ -30,6 +27,10 @@ export class ModelManager {
 
   getAllModels(): ModelData[] {
     return Array.from(this.models.values());
+  }
+
+  clearAll(): void {
+    this.models.clear();
   }
 
   setModelVisibility(id: string, visible: boolean): void {
@@ -55,4 +56,3 @@ export class ModelManager {
     return this.models.size > 0 && Array.from(this.models.values()).every(m => m.visible);
   }
 }
-

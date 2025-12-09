@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { batchMeshes, unbatch, type BatchingResult } from '../batching';
-import type { ModelManager, DisciplineType } from '../modelManager';
+import type { ModelManager } from '../modelManager';
 import type { SimpleCamera } from '@thatopen/components';
 
 export interface ModelLoaderOptions {
@@ -13,11 +13,21 @@ export interface ModelLoaderOptions {
 /**
  * Controller for loading and managing GLB model files
  */
+export interface GLBMetadata {
+  generator?: string;
+  version?: string;
+  copyright?: string;
+  extensions?: any;
+  extras?: any;
+}
+
 export class ModelLoaderController {
   private scene: THREE.Scene;
   private camera: SimpleCamera;
   private loader = new GLTFLoader();
   private modelManager: ModelManager;
+  private currentFile: File | null = null;
+  private glbMetadata: GLBMetadata | null = null;
 
   constructor(scene: THREE.Scene, camera: SimpleCamera, modelManager: ModelManager) {
     this.scene = scene;
@@ -30,13 +40,23 @@ export class ModelLoaderController {
    */
   async loadGLBFile(
     file: File,
-    discipline: DisciplineType | undefined,
     options: ModelLoaderOptions,
     onEdgesAdd?: () => void
   ): Promise<{ root: THREE.Group, batching: BatchingResult | null }> {
+    this.currentFile = file;
     const url = URL.createObjectURL(file);
     try {
       const gltf = await this.loader.loadAsync(url);
+      
+      // Store GLB metadata
+      this.glbMetadata = {
+        generator: gltf.asset?.generator,
+        version: gltf.asset?.version,
+        copyright: gltf.asset?.copyright,
+        extensions: gltf.extensions,
+        extras: gltf.extras
+      };
+      
       const root = gltf.scene;
       (root as any).userData.isUserModel = true;
       
@@ -62,14 +82,12 @@ export class ModelLoaderController {
         }) || null;
       }
 
-      if (discipline) {
-        const modelId = this.modelManager.addModel(file.name, discipline, root, batching);
-        (root as any).userData.modelId = modelId;
-      }
+      const modelId = this.modelManager.addModel(file.name, root, batching);
+      (root as any).userData.modelId = modelId;
 
       if (onEdgesAdd) onEdgesAdd();
 
-      window.dispatchEvent(new CustomEvent('viewer:modelLoaded', { detail: { discipline } }));
+      window.dispatchEvent(new CustomEvent('viewer:modelLoaded', { detail: { modelId } }));
 
       return { root, batching };
     } finally {
@@ -77,60 +95,31 @@ export class ModelLoaderController {
     }
   }
 
+
   /**
-   * Load additional model without clearing existing ones
+   * Get current loaded file
    */
-  async loadAdditionalModel(
-    file: File,
-    discipline: DisciplineType,
-    options: ModelLoaderOptions,
-    onEdgesAdd?: () => void
-  ): Promise<{ modelId: string, root: THREE.Group, batching: BatchingResult | null }> {
-    const url = URL.createObjectURL(file);
-    try {
-      const gltf = await this.loader.loadAsync(url);
-      const root = gltf.scene;
-      (root as any).userData.isUserModel = true;
-      
-      const toMark: (THREE.Mesh | THREE.InstancedMesh)[] = [];
-      root.traverse(o => {
-        // Mark both regular Mesh and InstancedMesh (GPU instancing)
-        if ((o as any).isMesh || (o as any).isInstancedMesh) {
-          toMark.push(o as THREE.Mesh | THREE.InstancedMesh);
-        }
-      });
-      for (const m of toMark) {
-        (m as any).userData = (m as any).userData || {};
-        (m as any).userData.isUserModel = true;
-      }
-      
-      this.scene.add(root);
+  getCurrentFile(): File | null {
+    return this.currentFile;
+  }
 
-      let batching: BatchingResult | null = null;
-      if (options.batchingEnabled) {
-        batching = batchMeshes(root, {
-          allow32Bit: options.allow32Bit,
-          maxVerticesPerBatch: options.maxVerticesPerBatch
-        }) || null;
-      }
-
-      const modelId = this.modelManager.addModel(file.name, discipline, root, batching);
-      (root as any).userData.modelId = modelId;
-
-      if (onEdgesAdd) onEdgesAdd();
-
-      window.dispatchEvent(new CustomEvent('viewer:modelLoaded', { detail: { discipline, modelId } }));
-
-      return { modelId, root, batching };
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+  /**
+   * Get GLB metadata from loaded file
+   */
+  getGLBMetadata(): GLBMetadata | null {
+    return this.glbMetadata;
   }
 
   /**
    * Clear all previous models from scene
    */
   clearPreviousModels(): void {
+    // Clear from ModelManager
+    this.modelManager.clearAll();
+    this.currentFile = null;
+    this.glbMetadata = null;
+    
+    // Remove from scene
     const toRemove: THREE.Object3D[] = [];
     this.scene.traverse((obj: THREE.Object3D) => {
       if ((obj as any).userData?.isUserModel) toRemove.push(obj);

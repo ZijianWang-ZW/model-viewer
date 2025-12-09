@@ -6,16 +6,36 @@ import { AdaptiveResolutionController } from '../adaptiveRes';
 import { InteractionCullingController } from '../culling';
 import { SelectionController } from '../selection';
 import { HighlightController } from '../highlight';
-import { ModelManager, type DisciplineType } from '../modelManager';
+import { ModelManager } from '../modelManager';
 import { GuidController } from './GuidController';
 import { EdgeController } from './EdgeController';
-import { ModelLoaderController } from './ModelLoaderController';
+import { ModelLoaderController, type GLBMetadata } from './ModelLoaderController';
 
 export interface ViewerStats {
   originalMeshes: number;
   batches: number;
   uniqueMaterials: number;
   unbatchedOriginals: number;
+}
+
+export interface GLBStatistics {
+  totalMeshes: number;
+  regularMeshes: number;
+  instancedMeshNodes: number;
+  totalInstances: number;
+  uniqueGeometries: number;
+  fileInfo: {
+    name: string;
+    size: number;
+    sizeMB: number;
+    path?: string;
+  };
+  boundingBox?: {
+    min: THREE.Vector3;
+    max: THREE.Vector3;
+    center: THREE.Vector3;
+    size: THREE.Vector3;
+  };
 }
 
 export interface BatchInfoItem {
@@ -46,6 +66,13 @@ export class Viewer {
 
   // RAF loop
   private rafId: number | null = null;
+  
+  // FPS monitoring
+  private fps = 0;
+  private lastFrameTime = performance.now();
+  private frameCount = 0;
+  private fpsUpdateInterval = 1000; // Update FPS every second
+  private lastFpsUpdate = performance.now();
 
   // Model management
   private modelManager = new ModelManager();
@@ -126,12 +153,11 @@ export class Viewer {
   }
 
   // Public API - Model Loading
-  async loadGLBFromFile(file: File, discipline?: DisciplineType) {
+  async loadGLBFromFile(file: File) {
     this.clearPreviousModel();
     
     const { root, batching } = await this.modelLoader.loadGLBFile(
       file,
-      discipline,
       {
         batchingEnabled: this.batchingEnabled,
         allow32Bit: this.supportsUint32Indices(),
@@ -153,30 +179,120 @@ export class Viewer {
     this.modelLoader.fitCameraToAllModels(this.camera);
   }
 
-  async loadAdditionalModel(file: File, discipline: DisciplineType): Promise<string> {
-    const { modelId, root, batching } = await this.modelLoader.loadAdditionalModel(
-      file,
-      discipline,
-      {
-        batchingEnabled: this.batchingEnabled,
-        allow32Bit: this.supportsUint32Indices(),
-        maxVerticesPerBatch: this.maxVerticesPerBatch
-      },
-      () => {
-        if (this.edgeCtrl.isEnabled()) {
-          this.edgeCtrl.addEdgesForCurrentModel();
-        }
-      }
-    );
-
-    this.cullingCtrl.register(root);
-    this.clipperCtrl.scaleSizeToUserModels(this.scene);
-    this.modelLoader.fitCameraToAllModels(this.camera);
-    
-    return modelId;
+  // Public API - Stats
+  getFPS(): number {
+    return this.fps;
   }
 
-  // Public API - Stats
+  /**
+   * Get detailed GLB statistics including instancing information
+   */
+  getGLBStatistics(currentFile?: File): GLBStatistics {
+    let regularMeshes = 0;
+    let instancedMeshNodes = 0;
+    let totalInstances = 0;
+    const geometrySet = new Set<string>();
+    const boundingBox = new THREE.Box3();
+    let hasGeometry = false;
+
+    this.scene.traverse(o => {
+      const isMesh = (o as any).isMesh;
+      const isInstancedMesh = (o as any).isInstancedMesh;
+      
+      if (!isMesh && !isInstancedMesh) return;
+      if (!(o as any).userData?.isUserModel) return;
+      if ((o as any).userData?.isMergedBatch) return;
+      if ((o as any).userData?.isEdgeOverlay) return;
+
+      if (isInstancedMesh) {
+        const instancedMesh = o as THREE.InstancedMesh;
+        instancedMeshNodes++;
+        totalInstances += instancedMesh.count;
+        
+        // Track unique geometry
+        if (instancedMesh.geometry) {
+          geometrySet.add(instancedMesh.geometry.uuid);
+        }
+        
+        // Calculate bounding box for all instances in instanced mesh
+        if (instancedMesh.geometry && instancedMesh.count > 0) {
+          // Get bounding box of the base geometry
+          const geom = instancedMesh.geometry;
+          const baseBox = new THREE.Box3().setFromBufferAttribute(
+            geom.getAttribute('position') as THREE.BufferAttribute
+          );
+          
+          if (!baseBox.isEmpty()) {
+            // Expand bounding box to include all instances
+            // Approximate by checking first, middle, and last instances
+            const checkIndices = [
+              0,
+              Math.floor(instancedMesh.count / 2),
+              instancedMesh.count - 1
+            ].filter(idx => idx >= 0 && idx < instancedMesh.count);
+            
+            const tempBox = new THREE.Box3();
+            const matrix = new THREE.Matrix4();
+            const worldMatrix = instancedMesh.matrixWorld.clone();
+            
+            for (const idx of checkIndices) {
+              instancedMesh.getMatrixAt(idx, matrix);
+              tempBox.copy(baseBox);
+              tempBox.applyMatrix4(matrix);
+              tempBox.applyMatrix4(worldMatrix);
+              boundingBox.union(tempBox);
+            }
+            
+            hasGeometry = true;
+          }
+        }
+      } else {
+        const mesh = o as THREE.Mesh;
+        regularMeshes++;
+        
+        // Track unique geometry
+        if (mesh.geometry) {
+          geometrySet.add(mesh.geometry.uuid);
+        }
+        
+        // Add to bounding box
+        const box = new THREE.Box3().setFromObject(mesh);
+        if (!box.isEmpty()) {
+          boundingBox.union(box);
+          hasGeometry = true;
+        }
+      }
+    });
+
+    const fileInfo = currentFile ? {
+      name: currentFile.name,
+      size: currentFile.size,
+      sizeMB: currentFile.size / (1024 * 1024),
+      path: (currentFile as any).webkitRelativePath || undefined
+    } : {
+      name: 'No file loaded',
+      size: 0,
+      sizeMB: 0
+    };
+
+    const bbox = hasGeometry ? {
+      min: boundingBox.min.clone(),
+      max: boundingBox.max.clone(),
+      center: boundingBox.getCenter(new THREE.Vector3()),
+      size: boundingBox.getSize(new THREE.Vector3())
+    } : undefined;
+
+    return {
+      totalMeshes: regularMeshes + instancedMeshNodes,
+      regularMeshes,
+      instancedMeshNodes,
+      totalInstances,
+      uniqueGeometries: geometrySet.size,
+      fileInfo,
+      boundingBox: bbox
+    };
+  }
+
   getStats(): ViewerStats {
     let originalMeshes = 0;
     let unbatchedOriginals = 0;
@@ -464,18 +580,12 @@ export class Viewer {
     return this.modelManager;
   }
 
-  setModelVisibility(modelId: string, visible: boolean): void {
-    this.modelManager.setModelVisibility(modelId, visible);
+  getCurrentFile(): File | null {
+    return this.modelLoader.getCurrentFile();
   }
 
-  setAllModelsVisibility(visible: boolean): void {
-    this.modelManager.setAllModelsVisibility(visible);
-  }
-
-  removeModel(modelId: string): void {
-    this.modelLoader.removeModel(modelId, (batching) => {
-      unbatch(batching);
-    });
+  getGLBMetadata(): GLBMetadata | null {
+    return this.modelLoader.getGLBMetadata();
   }
 
   // Public API - GUID Search & Focus
@@ -552,6 +662,16 @@ export class Viewer {
   }
 
   private animationLoop = () => {
+    // Update FPS
+    const now = performance.now();
+    this.frameCount++;
+    if (now - this.lastFpsUpdate >= this.fpsUpdateInterval) {
+      this.fps = Math.round((this.frameCount * 1000) / (now - this.lastFpsUpdate));
+      this.frameCount = 0;
+      this.lastFpsUpdate = now;
+      window.dispatchEvent(new CustomEvent('viewer:fpsUpdate', { detail: { fps: this.fps } }));
+    }
+    
     this.cullingCtrl.update();
     (this.world.renderer as any).update?.();
     this.rafId = requestAnimationFrame(this.animationLoop);

@@ -181,8 +181,6 @@
       color: #fff;
     }
 
-    /* Clash Card Viewer - Modern Blue Design */
-    #clash-card-container {
       position: fixed;
       top: 280px;
       right: 16px;
@@ -582,11 +580,6 @@
     #open-clash-viewer:hover {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       transform: translateY(-2px);
-      box-shadow: 
-        0 8px 24px rgba(37, 99, 235, 0.6),
-        0 0 0 1px rgba(96, 165, 250, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    }
 
     #clip-config {
       position: relative;
@@ -658,6 +651,102 @@
       font: 14px/1.45 sans-serif;
     }
 
+    /* GLB Info Panel */
+    #glb-info-panel {
+      position: absolute;
+      z-index: 10;
+      top: 12px;
+      right: 12px;
+      min-width: 280px;
+      max-width: 400px;
+      background: rgba(30, 30, 30, 0.85);
+      padding: 14px 16px;
+      border-radius: 8px;
+      color: #fff;
+      font: 13px/1.5 sans-serif;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    #glb-info-panel.visible {
+      display: block;
+    }
+
+    #glb-info-panel h4 {
+      margin: 0 0 12px 0;
+      font: 600 15px/1.2 system-ui, sans-serif;
+      color: #6528D7;
+      border-bottom: 1px solid rgba(101, 40, 215, 0.3);
+      padding-bottom: 6px;
+    }
+
+    #glb-info-panel .info-section {
+      margin-bottom: 12px;
+    }
+
+    #glb-info-panel .info-section-title {
+      font: 600 11px/1.4 system-ui;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    #glb-info-panel .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 4px 0;
+      font-size: 12px;
+    }
+
+    #glb-info-panel .info-key {
+      color: #ccc;
+      opacity: 0.9;
+      flex-shrink: 0;
+    }
+
+    #glb-info-panel .info-val {
+      text-align: right;
+      color: #fff;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    #glb-info-panel .fps-indicator {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    #glb-info-panel .fps-good {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    #glb-info-panel .fps-medium {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    #glb-info-panel .fps-poor {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    #glb-info-panel .file-name {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
     #stats-panel .row {
       display: flex;
       justify-content: space-between;
@@ -709,179 +798,15 @@
     }
 
     #file {
-      display: none;
-    }
-
-    /* Discipline Modal */
-    #discipline-modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      align-items: center;
-      justify-content: center;
-    }
-
-    #discipline-modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: rgba(30, 30, 30, 0.95);
-      padding: 24px;
-      border-radius: 8px;
-      min-width: 300px;
-      color: #fff;
-    }
-
-    .modal-content h3 {
-      margin: 0 0 16px 0;
-      font: 600 16px/1.4 system-ui, sans-serif;
-    }
-
-    .discipline-options {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .discipline-option {
-      padding: 12px 16px;
-      background: rgba(50, 50, 50, 0.8);
-      border: 2px solid transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .discipline-option:hover {
-      background: rgba(70, 70, 70, 0.9);
-      border-color: #6528D7;
-    }
-
-    .discipline-option.selected {
-      background: rgba(101, 40, 215, 0.3);
-      border-color: #6528D7;
-    }
-
-    .discipline-icon {
-      font-size: 20px;
-      width: 24px;
-      text-align: center;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .modal-actions button {
-      padding: 8px 16px;
-    }
-
-    /* Models Panel */
-    #models-panel {
       position: absolute;
-      z-index: 10;
-      top: 12px;
-      right: 12px;
-      min-width: 200px;
-      background: rgba(30, 30, 30, 0.9);
-      padding: 12px;
-      border-radius: 8px;
-      color: #fff;
-      font: 14px/1.45 sans-serif;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    #models-panel h4 {
-      margin: 0 0 12px 0;
-      font: 600 15px/1.2 system-ui, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .model-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      border-radius: 4px;
-      margin-bottom: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .model-item:hover {
-      background: rgba(50, 50, 50, 0.5);
-    }
-
-    .model-item.all-item {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      margin-bottom: 8px;
-      padding-bottom: 12px;
-    }
-
-    .visibility-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #6528D7;
-      border-radius: 4px;
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-
-    .visibility-icon.hidden {
-      background: #4a4a4a;
-      opacity: 0.6;
-    }
-
-    .discipline-icon-small {
-      width: 20px;
-      text-align: center;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    .model-name {
-      flex: 1;
-      font-size: 13px;
+      opacity: 0;
+      width: 0;
+      height: 0;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      pointer-events: none;
     }
 
-    .model-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    .model-action-btn {
-      padding: 4px 8px;
-      font-size: 11px;
-      background: rgba(70, 70, 70, 0.8);
-      border: none;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .model-action-btn:hover {
-      background: rgba(100, 100, 100, 0.9);
-    }
+    /* Removed: Discipline Modal and Models Panel styles */
   </style>
 </head>
 
@@ -889,62 +814,6 @@
   <div id="app">
     <div id="edges-banner">Adding edges…</div>
     <div id="pick-banner"></div>
-
-    <!-- Discipline Selection Modal -->
-    <div id="discipline-modal">
-      <div class="modal-content">
-        <h3>Select Discipline</h3>
-        <div class="discipline-options">
-          <div class="discipline-option" data-discipline="Architecture">
-            <span class="discipline-icon">🏛️</span>
-            <span>Architecture</span>
-          </div>
-          <div class="discipline-option" data-discipline="Structure">
-            <span class="discipline-icon">🏗️</span>
-            <span>Structure</span>
-          </div>
-          <div class="discipline-option" data-discipline="Mechanical">
-            <span class="discipline-icon">⚙️</span>
-            <span>Mechanical</span>
-          </div>
-          <div class="discipline-option" data-discipline="Electrical">
-            <span class="discipline-icon">⚡</span>
-            <span>Electrical</span>
-          </div>
-          <div class="discipline-option" data-discipline="Plumbing">
-            <span class="discipline-icon">🚰</span>
-            <span>Plumbing</span>
-          </div>
-          <div class="discipline-option" data-discipline="Other">
-            <span class="discipline-icon">📦</span>
-            <span>Other</span>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button id="discipline-cancel">Cancel</button>
-          <button id="discipline-confirm" disabled>Confirm</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Models Panel -->
-    <div id="models-panel">
-      <h4>
-        <span>Models</span>
-        <span id="model-count">0</span>
-      </h4>
-      <div id="models-list">
-        <div class="model-item all-item" id="all-models-toggle">
-          <div class="visibility-icon" title="Toggle all">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </div>
-          <span class="model-name" style="font-weight: 600;">All</span>
-        </div>
-      </div>
-    </div>
 
     <div id="toolbar">
       <button id="open">Open .glb</button>
@@ -989,7 +858,6 @@
         <label for="zoom-speed">Zoom step</label>
         <input id="zoom-speed" type="number" min="0.1" step="0.1" value="0.5" placeholder="×1.0" />
       </span>
-      <input id="file" type="file" accept=".glb" multiple />
     </div>
     <div id="info-panel">
       <h4>Selection</h4>
@@ -1009,43 +877,71 @@
       <div class="row"><span class="key">Edges added in (s)</span><span class="val" id="stat-edgessec">N/A</span></div>
       <div id="batch-details"></div>
     </div>
-    <div id="container"></div>
-    
-    <!-- Clash Card Viewer -->
-    <div id="clash-card-container">
-      <div id="clash-card">
-        <div id="clash-card-header-bar">
-          <h2>Clashes</h2>
-          <div class="clash-controls">
-            <span id="clash-counter">0 / 0</span>
-            <button id="clash-show-all" title="Show all objects">Show All</button>
-            <button id="clash-close" title="Close">✕</button>
-          </div>
+    <div id="glb-info-panel">
+      <h4>GLB Information</h4>
+      <div class="info-section">
+        <div class="info-section-title">Performance</div>
+        <div class="info-row">
+          <span class="info-key">FPS:</span>
+          <span class="info-val"><span id="glb-fps" class="fps-indicator fps-good">0</span></span>
         </div>
-        <div id="clash-card-content">
-          <!-- Content populated by ClashCardManager -->
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Geometry</div>
+        <div class="info-row">
+          <span class="info-key">Total Meshes:</span>
+          <span class="info-val" id="glb-total-meshes">0</span>
         </div>
-        <div id="clash-card-navigation">
-          <button id="clash-prev" class="nav-btn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-            <span>Previous</span>
-          </button>
-          <button id="clash-next" class="nav-btn">
-            <span>Next</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
+        <div class="info-row">
+          <span class="info-key">Regular Meshes:</span>
+          <span class="info-val" id="glb-regular-meshes">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Instanced Nodes:</span>
+          <span class="info-val" id="glb-instanced-nodes">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Total Instances:</span>
+          <span class="info-val" id="glb-total-instances">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Prototypes (Unique):</span>
+          <span class="info-val" id="glb-unique-geometries">0</span>
+        </div>
+        <div class="info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <span class="info-key">Instancing Ratio:</span>
+          <span class="info-val" id="glb-instancing-ratio">-</span>
+        </div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">File</div>
+        <div class="info-row">
+          <span class="info-key">Name:</span>
+          <span class="info-val"><span class="file-name" id="glb-file-name" title="">-</span></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Size:</span>
+          <span class="info-val" id="glb-file-size">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Location:</span>
+          <span class="info-val"><span class="file-name" id="glb-file-path" title="">-</span></span>
+        </div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Bounding Box</div>
+        <div class="info-row">
+          <span class="info-key">Center:</span>
+          <span class="info-val" id="glb-bbox-center">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Size:</span>
+          <span class="info-val" id="glb-bbox-size">-</span>
         </div>
       </div>
     </div>
-    
-    <!-- Clash Viewer Toggle Button -->
-    <button id="open-clash-viewer" title="Open Clash Viewer">
-      Clashes
-    </button>
+    <div id="container"></div>
+    <input id="file" type="file" accept=".glb" />
   </div>
   <script type="module" nonce="dev" src="/src/main.ts"></script>
 </body>

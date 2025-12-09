@@ -4,7 +4,6 @@ import { installClippingUI } from './clipping';
 import { installEdgesUI } from './edges';
 import { installHighlightUI } from './highlight';
 import { FileLoadManager } from './fileLoadManager';
-import { ClashCardManager } from './clashCardManager';
 
 const container = document.getElementById('container')!;
 const viewer = new Viewer(container);
@@ -20,6 +19,7 @@ const batchesPanel = document.getElementById('batch-details') as HTMLElement | n
 const edgesBanner = document.getElementById('edges-banner') as HTMLElement | null;
 const unbatchedEl = document.getElementById('stat-unbatched') as HTMLElement | null;
 const highlightedEl = document.getElementById('stat-highlighted') as HTMLElement | null;
+
 function updateStats() {
   if (!meshesEl) return;
   const s = viewer.getStats();
@@ -31,28 +31,12 @@ function updateStats() {
   if (highlightedEl) highlightedEl.textContent = String(viewer.getHighlightedCount());
 }
 
-// File loading manager - handles multiple files with discipline selection
+// File loading manager - simplified, no discipline selection
 const fileLoadManager = new FileLoadManager(viewer);
 fileLoadManager.setLoadCompleteCallback(() => {
   updateStats();
-  updateModelsPanel();
+  updateGLBInfoPanel();
   refreshBatchDetailsIfOpen();
-});
-
-// Clash card manager - handles clash detection visualization
-const clashCardManager = new ClashCardManager(viewer);
-
-// Open clash viewer button
-document.getElementById('open-clash-viewer')!.addEventListener('click', async () => {
-  if (!clashCardManager.hasClashes()) {
-    try {
-      await clashCardManager.loadClashesFromCSV('/clash_results_20.csv');
-    } catch (err) {
-      alert('Failed to load clash results: ' + err);
-    }
-  } else {
-    clashCardManager.showCard();
-  }
 });
 
 // Edges toggle button logic
@@ -228,65 +212,6 @@ window.addEventListener('viewer:edgesBuilt', (e: any) => {
 window.addEventListener('viewer:highlightChanged', () => {
   updateStats();
 });
-
-// Models panel setup
-const modelsList = document.getElementById('models-list')!;
-const modelCount = document.getElementById('model-count')!;
-const allModelsToggle = document.getElementById('all-models-toggle')!;
-
-const DISCIPLINE_ICONS = {
-  Architecture: '🏛️', Structure: '🏗️', Mechanical: '⚙️',
-  Electrical: '⚡', Plumbing: '🚰', Other: '📦'
-} as const;
-
-const EYE_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
-
-function updateModelsPanel() {
-  const models = viewer.getModelManager().getAllModels();
-  modelCount.textContent = String(models.length);
-  
-  // Update "All" toggle
-  allModelsToggle.querySelector('.visibility-icon')!.classList.toggle('hidden', 
-    !viewer.getModelManager().areAllModelsVisible());
-  
-  // Clear and rebuild model list
-  modelsList.querySelectorAll('.model-item:not(.all-item)').forEach(el => el.remove());
-  
-  models.forEach(model => {
-    const item = document.createElement('div');
-    item.className = 'model-item';
-    item.innerHTML = `
-      <div class="visibility-icon ${model.visible ? '' : 'hidden'}" title="Toggle">${EYE_ICON}</div>
-      <span class="discipline-icon-small">${DISCIPLINE_ICONS[model.discipline]}</span>
-      <span class="model-name" title="${model.name}">${model.discipline}</span>
-      <button class="model-action-btn remove-btn" title="Remove">×</button>
-    `;
-    
-    item.querySelector('.visibility-icon')!.addEventListener('click', () => {
-      viewer.setModelVisibility(model.id, !model.visible);
-      updateModelsPanel();
-    });
-    
-    item.querySelector('.remove-btn')!.addEventListener('click', () => {
-      if (confirm(`Remove ${model.discipline}?`)) {
-        viewer.removeModel(model.id);
-        updateModelsPanel();
-        updateStats();
-      }
-    });
-    
-    modelsList.appendChild(item);
-  });
-}
-
-allModelsToggle.addEventListener('click', () => {
-  viewer.setAllModelsVisibility(!viewer.getModelManager().areAllModelsVisible());
-  updateModelsPanel();
-});
-
-window.addEventListener('viewer:modelLoaded', updateModelsPanel);
-window.addEventListener('viewer:modelRemoved', updateModelsPanel);
-updateModelsPanel();
 
 // GUID search functionality
 const guidSearchBtn = document.getElementById('guid-search')!;
@@ -572,3 +497,102 @@ function showGuidSearchFeedback(message: string) {
     }, 3000);
   }
 }
+
+// GLB Info Panel
+const glbInfoPanel = document.getElementById('glb-info-panel');
+const glbFpsEl = document.getElementById('glb-fps');
+const glbTotalMeshesEl = document.getElementById('glb-total-meshes');
+const glbRegularMeshesEl = document.getElementById('glb-regular-meshes');
+const glbInstancedNodesEl = document.getElementById('glb-instanced-nodes');
+const glbTotalInstancesEl = document.getElementById('glb-total-instances');
+const glbUniqueGeometriesEl = document.getElementById('glb-unique-geometries');
+const glbInstancingRatioEl = document.getElementById('glb-instancing-ratio');
+const glbFileNameEl = document.getElementById('glb-file-name');
+const glbFileSizeEl = document.getElementById('glb-file-size');
+const glbFilePathEl = document.getElementById('glb-file-path');
+const glbBboxCenterEl = document.getElementById('glb-bbox-center');
+const glbBboxSizeEl = document.getElementById('glb-bbox-size');
+
+function updateGLBInfoPanel() {
+  const currentFile = viewer.getCurrentFile();
+  const stats = viewer.getGLBStatistics(currentFile || undefined);
+  const fps = viewer.getFPS();
+
+  // Show panel if file is loaded
+  if (glbInfoPanel) {
+    if (currentFile) {
+      glbInfoPanel.classList.add('visible');
+      glbInfoPanel.style.display = 'block';
+    } else {
+      glbInfoPanel.classList.remove('visible');
+      glbInfoPanel.style.display = 'none';
+    }
+  }
+
+  // Update FPS
+  if (glbFpsEl) {
+    glbFpsEl.textContent = `${fps} FPS`;
+    glbFpsEl.className = 'fps-indicator ' + (
+      fps >= 55 ? 'fps-good' :
+      fps >= 30 ? 'fps-medium' : 'fps-poor'
+    );
+  }
+
+  // Update geometry stats
+  if (glbTotalMeshesEl) glbTotalMeshesEl.textContent = String(stats.totalMeshes);
+  if (glbRegularMeshesEl) glbRegularMeshesEl.textContent = String(stats.regularMeshes);
+  if (glbInstancedNodesEl) glbInstancedNodesEl.textContent = String(stats.instancedMeshNodes);
+  if (glbTotalInstancesEl) glbTotalInstancesEl.textContent = String(stats.totalInstances);
+  if (glbUniqueGeometriesEl) {
+    // Show unique geometries (prototypes)
+    glbUniqueGeometriesEl.textContent = String(stats.uniqueGeometries);
+  }
+  if (glbInstancingRatioEl) {
+    // Calculate instancing efficiency ratio
+    if (stats.totalInstances > 0 && stats.instancedMeshNodes > 0) {
+      const ratio = (stats.totalInstances / stats.instancedMeshNodes).toFixed(1);
+      glbInstancingRatioEl.textContent = `${ratio}x`;
+    } else {
+      glbInstancingRatioEl.textContent = '-';
+    }
+  }
+
+  // Update file info
+  if (glbFileNameEl) {
+    glbFileNameEl.textContent = stats.fileInfo.name;
+    glbFileNameEl.setAttribute('title', stats.fileInfo.name);
+  }
+  if (glbFileSizeEl) {
+    glbFileSizeEl.textContent = stats.fileInfo.sizeMB > 0 
+      ? `${stats.fileInfo.sizeMB.toFixed(2)} MB` 
+      : '-';
+  }
+  if (glbFilePathEl) {
+    glbFilePathEl.textContent = stats.fileInfo.path || '-';
+    if (stats.fileInfo.path) {
+      glbFilePathEl.setAttribute('title', stats.fileInfo.path);
+    }
+  }
+
+  // Update bounding box
+  if (stats.boundingBox) {
+    const bb = stats.boundingBox;
+    if (glbBboxCenterEl) {
+      glbBboxCenterEl.textContent = `(${bb.center.x.toFixed(2)}, ${bb.center.y.toFixed(2)}, ${bb.center.z.toFixed(2)})`;
+    }
+    if (glbBboxSizeEl) {
+      glbBboxSizeEl.textContent = `(${bb.size.x.toFixed(2)}, ${bb.size.y.toFixed(2)}, ${bb.size.z.toFixed(2)})`;
+    }
+  } else {
+    if (glbBboxCenterEl) glbBboxCenterEl.textContent = '-';
+    if (glbBboxSizeEl) glbBboxSizeEl.textContent = '-';
+  }
+}
+
+// Update FPS in real-time
+window.addEventListener('viewer:fpsUpdate', () => {
+  updateGLBInfoPanel();
+});
+
+// Initial update
+updateGLBInfoPanel();
